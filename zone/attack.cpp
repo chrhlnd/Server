@@ -49,6 +49,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 extern QueryServ* QServ;
 extern WorldServer worldserver;
 extern FastMath g_Math;
+extern int applyMagicDamageTable(Mob* caster, int dmg, EQEmu::skills::SkillType skill);
 
 #ifdef _WINDOWS
 #define snprintf	_snprintf
