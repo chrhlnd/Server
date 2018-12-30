@@ -49,6 +49,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 extern QueryServ* QServ;
 extern WorldServer worldserver;
 extern FastMath g_Math;
+extern int applyMagicDamageTable(Mob* caster, int dmg, EQEmu::skills::SkillType skill);
 
 #ifdef _WINDOWS
 #define snprintf	_snprintf
@@ -3381,6 +3382,9 @@ bool Mob::CheckDoubleAttack()
 }
 
 void Mob::CommonDamage(Mob* attacker, int &damage, const uint16 spell_id, const EQ::skills::SkillType skill_used, bool &avoidable, const int8 buffslot, const bool iBuffTic, eSpecialAttacks special) {
+    // add in a mod call for all damage mucking
+	ApplyAnyDamageTable(attacker, damage, spell_id, skill_used, avoidable, buffslot, iBuffTic, special);
+
 	// This method is called with skill_used=ABJURE for Damage Shield damage.
 	bool FromDamageShield = (skill_used == EQ::skills::SkillAbjuration);
 	bool ignore_invul = false;
@@ -4718,6 +4722,27 @@ const DamageTable &Mob::GetDamageTable() const
 
 	auto &which = monk ? mnk_table : dmg_table;
 	return which[level - 50];
+}
+
+void Mob::ApplyAnyDamageTable(Mob* attacker, int &damage, const uint16 spell_id, const EQEmu::skills::SkillType skill_used, bool &avoidable, const int8 buffslot, const bool iBuffTic, eSpecialAttacks& special)
+{
+#ifdef LUA_EQEMU
+	DamageAnyInfo info;
+
+	info.damage = damage;
+    info.spell_id = spell_id;
+    info.avoidable = avoidable;
+    info.buffslot = buffslot;
+	info.iBuffTic = iBuffTic;
+    info.special = (int)special;
+    info.skill_used = skill_used;
+	
+	LuaParser::Instance()->ApplyAnyDamageTable(this, attacker, info);
+
+	damage = info.damage;
+	avoidable = info.avoidable;
+	special = (eSpecialAttacks)info.special;
+#endif
 }
 
 void Mob::ApplyDamageTable(DamageHitInfo &hit)

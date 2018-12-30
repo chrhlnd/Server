@@ -920,6 +920,9 @@ public:
 
 	uint8 GetWeaponDamageBonus(const EQ::ItemData* weapon, bool offhand = false);
 	const DamageTable &GetDamageTable() const;
+
+    void ApplyAnyDamageTable(Mob* attacker, int &damage, const uint16 spell_id, const EQEmu::skills::SkillType skill_used, bool &avoidable, const int8 buffslot, const bool iBuffTic, eSpecialAttacks& special);
+
 	void ApplyDamageTable(DamageHitInfo &hit);
 	virtual int GetHandToHandDamage(void);
 

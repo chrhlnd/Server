@@ -17,6 +17,8 @@ public:
 	~LuaMod() { }
 	void Init();
 
+    void ApplyAnyDamageTable(Mob* self, Mob *attacker, DamageAnyInfo &hit);
+
 	void MeleeMitigation(Mob *self, Mob *attacker, DamageHitInfo &hit, ExtraAttackOptions *opts, bool &ignoreDefault);
 	void ApplyDamageTable(Mob *self, DamageHitInfo &hit, bool &ignoreDefault);
 	void AvoidDamage(Mob *self, Mob *other, DamageHitInfo &hit, bool &returnValue, bool &ignoreDefault);
@@ -32,6 +34,7 @@ private:
 	std::string package_name_;
 
 	bool m_has_melee_mitigation;
+	bool m_has_any_apply_damage_table;
 	bool m_has_apply_damage_table;
 	bool m_has_avoid_damage;
 	bool m_has_check_hit_chance;

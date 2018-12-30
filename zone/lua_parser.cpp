@@ -1321,6 +1321,13 @@ void LuaParser::ApplyDamageTable(Mob *self, DamageHitInfo &hit, bool &ignoreDefa
 	}
 }
 
+void LuaParser::ApplyAnyDamageTable(Mob* self, Mob* attacker, DamageAnyInfo &info)
+{
+	for (auto &mod : mods_) {
+		mod.ApplyAnyDamageTable(self, attacker, info);
+	}
+}
+
 bool LuaParser::AvoidDamage(Mob *self, Mob *other, DamageHitInfo &hit, bool & ignoreDefault)
 {
 	bool retval = false;

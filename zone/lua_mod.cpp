@@ -37,6 +37,7 @@
 void LuaMod::Init()
 {
 	m_has_melee_mitigation = parser_->HasFunction("MeleeMitigation", package_name_);
+	m_has_any_apply_damage_table = parser_->HasFunction("ApplyAnyDamageTable", package_name_);
 	m_has_apply_damage_table = parser_->HasFunction("ApplyDamageTable", package_name_);
 	m_has_avoid_damage = parser_->HasFunction("AvoidDamage", package_name_);
 	m_has_check_hit_chance = parser_->HasFunction("CheckHitChance", package_name_);
@@ -45,6 +46,27 @@ void LuaMod::Init()
 	m_has_get_exp_for_level = parser_->HasFunction("GetEXPForLevel", package_name_);
 	m_has_get_experience_for_kill = parser_->HasFunction("GetExperienceForKill", package_name_);
 	m_has_common_outgoing_hit_success = parser_->HasFunction("CommonOutgoingHitSuccess", package_name_);
+}
+
+/*
+	int             damage;
+    uint16          spell_id;
+    bool            avoidable;
+    int8            buffslot;
+    bool            iBuffTic;
+    eSpecialAttacks special;
+    EQEmu::skills::SkillType skill_used;
+*/
+void PutAnyDamageHitInfo(lua_State *L, luabind::adl::object &e, DamageAnyInfo &info) {
+	luabind::adl::object lua_hit = luabind::newtable(L);
+	lua_hit["damage"]    = info.damage;
+	lua_hit["skill"]     = (int)info.skill_used;
+	lua_hit["spell_id"]  = info.spell_id;
+	lua_hit["avoidable"] = info.avoidable;
+	lua_hit["buffslot"]  = info.buffslot;
+	lua_hit["ibufftic"]  = info.iBuffTic;
+	lua_hit["special"]   = (int)info.special;
+	e["hit"] = lua_hit;
 }
 
 void PutDamageHitInfo(lua_State *L, luabind::adl::object &e, DamageHitInfo &hit) {
@@ -57,6 +79,25 @@ void PutDamageHitInfo(lua_State *L, luabind::adl::object &e, DamageHitInfo &hit)
 	lua_hit["hand"] = hit.hand;
 	lua_hit["skill"] = (int)hit.skill;
 	e["hit"] = lua_hit;
+}
+
+void GetAnyDamageHitInfo(luabind::adl::object &ret, DamageAnyInfo &info) {
+	auto luaHitTable = ret["hit"];
+	if (luabind::type(luaHitTable) == LUA_TTABLE) {
+		auto damage = luaHitTable["damage"];
+		auto avoidable = luaHitTable["avoidable"];
+		auto special = luaHitTable["special"];
+
+		if (luabind::type(damage) == LUA_TNUMBER) {
+			info.damage = luabind::object_cast<int>(damage);
+		}
+		if (luabind::type(avoidable) == LUA_TNUMBER) {
+			info.avoidable = luabind::object_cast<int>(avoidable) > 0;
+		}
+		if (luabind::type(special) == LUA_TNUMBER) {
+			info.special = (int)luabind::object_cast<int>(special) > 0;
+		}
+	}
 }
 
 void GetDamageHitInfo(luabind::adl::object &ret, DamageHitInfo &hit) {
@@ -231,6 +272,51 @@ void LuaMod::MeleeMitigation(Mob *self, Mob *attacker, DamageHitInfo &hit, Extra
 		lua_pop(L, n);
 	}
 }
+
+void LuaMod::ApplyAnyDamageTable(Mob *self, Mob *attacker, DamageAnyInfo &info) {
+	int start = lua_gettop(L);
+
+	try {
+		if (!m_has_any_apply_damage_table) {
+			return;
+		}
+
+		lua_getfield(L, LUA_REGISTRYINDEX, package_name_.c_str());
+		lua_getfield(L, -1, "ApplyAnyDamageTable");
+
+		Lua_Mob l_self(self);
+		luabind::adl::object e = luabind::newtable(L);
+		e["self"] = l_self;
+
+		Lua_Mob l_attacker(attacker);
+		e["attacker"] = l_attacker;
+
+		PutAnyDamageHitInfo(L, e, info);
+		e.push(L);
+
+		if (lua_pcall(L, 1, 1, 0)) {
+			std::string error = lua_tostring(L, -1);
+			parser_->AddError(error);
+			lua_pop(L, 1);
+			return;
+		}
+
+		if (lua_type(L, -1) == LUA_TTABLE) {
+			luabind::adl::object ret(luabind::from_stack(L, -1));
+			GetAnyDamageHitInfo(ret, info);
+		}
+	}
+	catch (std::exception &ex) {
+		parser_->AddError(ex.what());
+	}
+
+	int end = lua_gettop(L);
+	int n = end - start;
+	if (n > 0) {
+		lua_pop(L, n);
+	}
+}
+
 
 void LuaMod::ApplyDamageTable(Mob *self, DamageHitInfo &hit, bool &ignoreDefault) {
 	int start = lua_gettop(L);

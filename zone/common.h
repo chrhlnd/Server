@@ -793,5 +793,15 @@ struct ExpeditionInvite
 	std::string swap_remove_name;
 };
 
+struct DamageAnyInfo {
+	int             damage;
+    uint16          spell_id;
+    bool            avoidable;
+    int8            buffslot;
+    bool            iBuffTic;
+    int             special;
+    EQEmu::skills::SkillType skill_used;
+};
+
 #endif
 
