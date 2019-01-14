@@ -151,6 +151,7 @@ SET(zone_sources
 	zone_reload.cpp
 	zone_store.cpp
 	zoning.cpp
+	item_quest.cpp
 )
 
 SET(zone_headers
@@ -265,6 +266,7 @@ SET(zone_headers
 	zonedump.h
 	zone_reload.h
 	zone_store.h
+	item_quest.h
 )
 
 ADD_EXECUTABLE(zone ${zone_sources} ${zone_headers})

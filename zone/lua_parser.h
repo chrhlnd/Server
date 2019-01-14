@@ -91,7 +91,7 @@ public:
 
 	//Mod Extensions
 	void MeleeMitigation(Mob *self, Mob *attacker, DamageHitInfo &hit, ExtraAttackOptions *opts, bool &ignoreDefault);
-    void ApplyAnyDamageTable(Mob *self, Mob* attacker, DamageAnyInfo &info);
+	void ApplyAnyDamageTable(Mob *self, Mob* attacker, DamageAnyInfo &info);
 	void ApplyDamageTable(Mob *self, DamageHitInfo &hit, bool &ignoreDefault);
 	bool AvoidDamage(Mob *self, Mob *other, DamageHitInfo &hit, bool &ignoreDefault);
 	bool CheckHitChance(Mob *self, Mob* other, DamageHitInfo &hit, bool &ignoreDefault);
