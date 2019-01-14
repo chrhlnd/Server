@@ -106,7 +106,6 @@ namespace EQEmu
 			uint32      MaxExpansion;
 		};
 
-
 		extern bool Query(ItemQuestQuery &query, std::vector<ItemQuestResultItem> &results);
 
 		struct ItemQuestPickResult {

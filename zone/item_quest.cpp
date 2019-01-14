@@ -1,5 +1,4 @@
 #include <ctime>
-
 #include "item_quest.h"
 #include "zonedb.h"
 
