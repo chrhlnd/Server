@@ -457,7 +457,8 @@ int command_init(void)
 		command_add("zstats", "- Show info about zone header", 80, command_zstats) ||
 		command_add("zunderworld", "[zcoord] - Sets the underworld using zcoord", 80, command_zunderworld) ||
 		command_add("zuwcoords", "[z coord] - Set underworld coord", 80, command_zuwcoords) ||
-		command_add("iq-query", "[slots] [classes] [races] [minlevel] [maxlevel] [minexp] [maxexp] [namef] [stat1] [statv1] ... ", 0, command_itemquestquery) ||
+		command_add("iq-query", "<col>:<op>:<value>|help", 0, command_itemquestquery) ||
+		command_add("iq-queryz", "<col>:<op>:<value>|help", 0, command_itemquestqueryz) ||
 		command_add("iq-set", "[item]", 0, command_itemquestset)
 	) {
 		command_deinit();
@@ -12752,67 +12753,325 @@ void command_itemquestset(Client *c, const Seperator *sep) {
 		return;
 	}
 
-	std::string item_str(sep->arg[1]);
+	auto itemArgIdx = 1;
 
-	size_t link_open = item_str.find('\x12');
-	size_t link_close = item_str.find_last_of('\x12');
+	std::string fullmsg = sep->msg;
 
 	uint32 itemid = 0;
 
-	if (item_str.length() >= EQEmu::constants::SAY_LINK_BODY_SIZE) {
+	std::string zoneLock;
+
+	auto linkmarker = fullmsg.find('\x12');
+	//Log(Logs::General, Logs::Debug, "Link marker %d", linkmarker);
+	if (linkmarker != std::string::npos) {
+		auto linkmarker_end = fullmsg.find((char)0x12, linkmarker+1);
+
+		std::string encodedLink;
+		encodedLink = fullmsg.substr(linkmarker + 1, EQEmu::constants::SAY_LINK_BODY_SIZE);
+
 		EQEmu::SayLinkBody_Struct link_body;
-		EQEmu::saylink::DegenerateLinkBody(link_body, item_str.substr(0, EQEmu::constants::SAY_LINK_BODY_SIZE));
+		EQEmu::saylink::DegenerateLinkBody(link_body, encodedLink);
+
+		Log(Logs::General, Logs::Debug, "Linked IID %d", link_body.item_id);
 		itemid = link_body.item_id;
+
+		int i = 0;
+		for (i = linkmarker_end + 1; i < fullmsg.size(); i++) {
+			if (!std::isspace(fullmsg[i])) {
+				break;
+			}
+		}
+		if (i < fullmsg.size()) {
+			zoneLock = fullmsg.substr(i);
+		}
+	} else {
+		auto delim = fullmsg.find(' ');
+		if (delim != std::string::npos) {
+			auto delim1 = fullmsg.find('_', delim+1);
+			if (delim1 != std::string::npos) {
+				itemid = atoul(fullmsg.substr(delim, delim1).c_str());
+				zoneLock = fullmsg.substr(delim1+1);
+			} else {
+				itemid = atoul(fullmsg.substr(delim+1).c_str());
+			}
+		}
 	}
-	else if (sep->IsNumber(1)) {
-		itemid = atoul(sep->arg[1]);
-	}
-	else {
+
+	if (itemid == 0) {
 		c->Message(0, "must link an item or use an item id [wrong type]");
 		std::string raw;
-		for (auto it = item_str.begin(); it != item_str.end(); ++it) {
+		for (auto it = fullmsg.begin(); it != fullmsg.end(); ++it) {
 			raw.append(StringFormat("%x ", *it));
 		}
 		c->Message(0, raw.c_str());
 		return;
 	}
 
-	std::string msg = StringFormat("would set item quest to %d", itemid);
+	const char* zoneName = nullptr;
+	if (zoneLock.size() > 0) {
+		zoneName = zoneLock.c_str();
+	}
 
-	c->Message(0, msg.c_str());
+	int rnd = zone->random.Int(INT_MIN,INT_MAX);
+
+	EQEmu::item_quest::ItemQuestQuery query;
+	query.MinLevel = 0;
+	query.MaxLevel = 0;
+	std::string packed = EQEmu::item_quest::GetLastQuery(c->CharacterID());
+	query.UnPack(packed);
+
+	auto target = c;
+	{
+		Mob* t = c->GetTarget();
+		if (t != nullptr && t->IsClient()) {
+			target = t->CastToClient();
+		}
+	}
+
+	int32 minlevel = std::max(0, target->GetLevel() - 5);
+	int32 maxlevel = target->GetLevel() + 5;
+
+	if (query.MinLevel !=  0) {
+		minlevel = query.MinLevel;
+	}
+
+	if (query.MaxLevel != 0) {
+		maxlevel = query.MaxLevel;
+	}
+
+	auto current_pick = EQEmu::item_quest::GetLastPick(c->CharacterID());
+	if (current_pick.size() > 0) {
+		auto remain = EQEmu::item_quest::GetLastPickRemain(c->CharacterID());
+		c->Message(0, StringFormat("Already have a current pick, %ds time left, or complete your goal, #iq-status to see goal.", remain).c_str());
+		return;
+	}
+
+	EQEmu::item_quest::ItemQuestPickResult result;
+	if (!EQEmu::item_quest::Pick(itemid, minlevel, maxlevel, 1, 8, rnd, zoneName, result)) {
+		c->Message(0, "Error picking item quest");
+		return;
+	}
+
+	if (!parse->PlayerHasQuestSub(EVENT_COMMAND)) {
+		c->Message(0, "Missing command handler on global player quest script aborting!");
+		return;
+	}
+
+	EQEmu::item_quest::SetLastPick(c->CharacterID(), result);
+
+	// pass this off to scripts
+	parse->EventPlayer(EVENT_COMMAND, c, "#iqpickapply", 0);
 }
 
-void formatQuestResult(EQEmu::item_quest::ItemQuestResultItem &item, std::string& str) {
+void formatQuestResult(EQEmu::item_quest::ItemQuestResultItem &item, std::string& str, std::string& zone) {
 	const EQEmu::ItemData* reward_item = database.GetItem(item.ItemID);
 	EQEmu::SayLinkEngine linker;
 	linker.SetLinkType(EQEmu::saylink::SayLinkItemData);
 	linker.SetItemData(reward_item);
 
 	auto item_link = linker.GenerateLink();
-	str.append("[" + EQEmu::SayLinkEngine::GenerateQuestSaylink("#iq-set " + item_link, false, "set") + "] ");
+	str.append("[");
+	if (zone.size() > 0) {
+		str.append(EQEmu::SayLinkEngine::GenerateQuestSaylink(StringFormat("#iq-set %d_%s",item.ItemID,zone.c_str()).c_str(), false, "set"));
+	} else {
+		str.append(EQEmu::SayLinkEngine::GenerateQuestSaylink(StringFormat("#iq-set %d",item.ItemID), false, "set"));
+	}
+	str.append("] ");
 	str.append(item_link);
 	str.append(" - ");
-	str.append(StringFormat("tchc: %.02f", item.Chance));
+	str.append(StringFormat("chance: %.02f - spn: %.02f - drp: %.02f", item.Chance*item.SpawnChance, item.SpawnChance, item.Chance));
 	str.append(" - ");
-	str.append(StringFormat("minspwnl: %d", item.MinLevel));
+	str.append(StringFormat("msl: %d", item.MinLevel));
 	str.append(" - ");
-	str.append(StringFormat("expansion: %d - %d", item.MinExpansion, item.MaxExpansion));
+	str.append(StringFormat("exp: %d - %d", item.MinExpansion, item.MaxExpansion));
+	if (zone.size() > 0) {
+		str.append(" ");
+		str.append(zone.c_str());
+	}
+}
+
+static const char* class_names[] = {
+	"unknown",
+	"warrior",
+	"cleric",
+	"paladin",
+	"ranger",
+	"shadowknight",
+	"druid",
+	"monk",
+	"bard",
+	"rogue",
+	"shaman",
+	"necromancer",
+	"wizard",
+	"magician",
+	"enchanter",
+	"beastlord",
+	"berserker"
+};
+
+static const char* race_names[] = {
+	"unknown"
+	"human"
+	"barbarian"
+	"erudite"
+	"wood_elf"
+	"high_elf"
+	"dark_elf"
+	"half_elf"
+	"dwarf"
+	"troll"
+	"ogre"
+	"halfling"
+	"gnome"
+	"iksar"
+	"vahshir"
+	"froglok"
+	"drakkin"
+};
+
+static const char* attrs[] = {
+	"damage",
+	"delay",
+	"ac",
+	"bagslots",
+	"focus",
+	"haste",
+	"hp",
+	"regen",
+	"mana",
+	"manaregen",
+	"mr",
+	"pr",
+	"cr",
+	"dr",
+	"fr",
+	"range",
+	"skillmodtype",
+	"proceffect",
+	"focuseffect"
+};
+
+const char* ops[] = {
+	"lt",
+	"gt",
+	"lte",
+	"gte",
+	"eq",
+	"neq"
+};
+
+#define S_ARRAY_LEN(x) (sizeof x/sizeof x[0])
+
+static void strsplit(const char* str, char pat, std::vector<std::string>& parts) {
+	std::istringstream ss(str);
+	std::string s;
+	while (std::getline(ss, s, pat)) {
+		parts.push_back(s);
+	}
+	if (str[strlen(str)-1] == pat) {
+		parts.push_back("");
+	}
+}
+
+static int aryfind(const char* ary[], int len, const char* item) {
+	int i = 0;
+
+	for (i = 0; i < len; i++) {
+		if (strcasecmp(ary[i], item) == 0) {
+			break;
+		}
+	}
+
+	if (i >= len) {
+		return -1;
+	}
+
+	return i;
+}
+
+void command_itemquestqueryz(Client *c, const Seperator *sep)
+{
+	command_itemquestquery(c, sep);
 }
 
 void command_itemquestquery(Client *c, const Seperator *sep)
 {
 	EQEmu::item_quest::ItemQuestQuery query;
-	//command_add("iq-query", "[slots] [classes] [races] [minlevel] [maxlevel] [minexp] [maxexp] [namef] [stat1] [test] [statv1] ... ", 0, command_itemquestquery)
-	
-	query.Slots = 0;
-	query.Classes = 0;
-	query.Races = 0;
-	query.MinLevel = 0;
-	query.MaxLevel = 0;
+
+	query.Slots        = 0;
+	query.Classes      = 0;
+	query.Races        = 0;
+	query.MinLevel     = 0;
+	query.MaxLevel     = 0;
 	query.MinExpansion = 0;
 	query.MaxExpansion = 0;
 
-	auto i = 1;
+	std::string zoneLock;
+
+	if (sep->arg[0][strlen(sep->arg[0])-1] == 'z') {
+		zoneLock = zone->GetShortName();
+	}
+
+	for (auto i = 1; i <= sep->argnum; i++) {
+		if (strcasecmp(sep->arg[i],"help") == 0) {
+			
+			c->Message(0, StringFormat("%s <col>:[op]:<value> ...", sep->arg[0]).c_str());
+			c->Message(0, ".while holding an item on the cursor, this set default queries for");
+			c->Message(0, "...slots      = Slots of the item being held");
+			c->Message(0, "...level      = Will be based on the clients character level");
+			c->Message(0, "...race       = Will be based on the clients character race");
+			c->Message(0, "...expansion  = Will be defaulted from 1 - 8");
+			c->Message(0, "...damage     = If the item being held has a damage value will search for damage items");
+			c->Message(0, "...delay      = If the item being held has a delay value will search for delay items");
+			c->Message(0, "...noaugment  = If the item being held isn't an augment, will search every thing but augments");
+			c->Message(0, ".overrides can be set in the form of <col>:[op]:<value>");
+			c->Message(0, "...class::<class>|<class>|.. - will override the class flags for the search");
+
+			int q = 0;
+
+			for (q = 1; q < S_ARRAY_LEN(class_names); q++) {
+				c->Message(0, StringFormat("    %s", class_names[q]).c_str());
+			}
+
+			c->Message(0, "...race:<race>|<race>|.. - will override the class flags for the search");
+			for (q = 1; q < S_ARRAY_LEN(race_names); q++) {
+				c->Message(0, StringFormat("    %s", race_names[q]).c_str());
+			}
+
+			c->Message(0, "...minlevel::<num> - will set the minimum level to find a spawn for");
+			c->Message(0, "...maxlevel::<num> - will set the maximum level to find a spawn for");
+			c->Message(0, "...minexp::<num>   - will set the minimum expansion level to find a spawn for");
+			c->Message(0, "...maxexp::<num>   - will set the maximum expansion level to find a spawn for");
+			c->Message(0, "...name::<str>     - will set the name filter for the item drop");
+			c->Message(0, "...zone::<str>     - will set the zone filter for the item drop (use shortname)");
+
+			for (q = 0; q < S_ARRAY_LEN(attrs); q++) {
+				c->Message(0, StringFormat("...%s:<op>:<num>     - will add this filter", attrs[q]).c_str());
+			}
+
+			for (q = 0; q < S_ARRAY_LEN(ops); q++) {
+				c->Message(0, StringFormat("...%s", ops[q]).c_str());
+			}
+			return;
+		}
+	}
+
+	query.Classes      = (1 << c->GetClass());
+	query.Races        = (1 << c->GetRace());
+	query.MinLevel     = std::max(1,c->GetLevel()-5);
+	query.MaxLevel     = c->GetLevel()+5;
+	query.MinExpansion = 1;
+	query.MaxExpansion = 8;
+	query.Zone         = zoneLock;
+
+	Mob* target = c->GetTarget(); // override with target if we had a valid one
+	if (target != nullptr && target->IsClient()) {
+		query.Classes      = (1 << (target->GetClass()-1));
+		query.Races        = (1 << (target->GetRace()-1));
+		query.MinLevel     = std::max(1,target->GetLevel()-5);
+		query.MaxLevel     = query.MinLevel + 10;
+	}
 
 	auto inst = c->GetInv().GetItem(EQEmu::invslot::slotCursor);
 	if (inst) {
@@ -12822,17 +13081,11 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 		linker.SetLinkType(EQEmu::saylink::SayLinkItemData);
 		linker.SetItemData(item_data);
 		std::string msg;
-		msg.append("Cursor has: ");
+		msg.append("Using slots from ");
 		msg.append(linker.GenerateLink());
 		c->Message(0, msg.c_str());
 
 		query.Slots        = item_data->Slots;
-		query.Classes      = (1 << c->GetClass());
-		query.Races        = (1 << c->GetRace());
-		query.MinLevel     = std::max(1,c->GetLevel()-5);
-		query.MaxLevel     = c->GetLevel()+5;
-		query.MinExpansion = 1;
-		query.MaxExpansion = 8;
 
 		EQEmu::item_quest::ItemQuestQueryStatLimit limit;
 		if (item_data->Damage > 0) {
@@ -12857,38 +13110,72 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 			query.QStats.push_back(limit);
 		}
 	}
-	else {
-		c->Message(0, "Nothing on cursor or it wasn't item data?");
 
-		if (sep->argnum > i) query.Slots        = atoul(sep->arg[i++]);
-		if (sep->argnum > i) query.Classes      = atoul(sep->arg[i++]);
-		if (sep->argnum > i) query.Races        = atoul(sep->arg[i++]);
-		if (sep->argnum > i) query.MinLevel     = atoul(sep->arg[i++]);
-		if (sep->argnum > i) query.MaxLevel     = atoul(sep->arg[i++]);
-		if (sep->argnum > i) query.MinExpansion = atoul(sep->arg[i++]);
-		if (sep->argnum > i) query.MaxExpansion = atoul(sep->arg[i++]);
-		if (sep->argnum > i) query.NameFilter.append(sep->arg[i++]);
-	}
 
+	auto i = 1;
 
 	std::vector<std::string> parts;
-	for (; i < sep->argnum; i++) {
+	for (; i <= sep->argnum; i++) {
 		parts.clear();
-		std::istringstream ss(sep->arg[i]);
-		std::string s;
-		while (std::getline(ss, s, ':')) {
-			parts.push_back(s);
-		}
-
+		strsplit(sep->arg[i],':',parts);
 		if (parts.size() < 3) {
 			continue;
 		}
-	
+
 		EQEmu::item_quest::ItemQuestQueryStatLimit limit;
 
 		if (strcasecmp(parts[0].c_str(), "name") == 0) {
 			query.NameFilter.clear();
 			query.NameFilter.append(parts[2]);
+			continue;
+		}
+		else if (strcasecmp(parts[0].c_str(), "zone") == 0) {
+			query.Zone.clear();
+			query.Zone.append(parts[2]);
+			continue;
+		}
+		else if (strcasecmp(parts[0].c_str(), "class") == 0) {
+			uint32 mask = 0;
+			std::string spec = parts[2];
+			parts.clear();
+			strsplit(spec.c_str(), '|', parts);
+			for (auto it = parts.begin(); it != parts.end(); ++it) {
+				int pos = aryfind(class_names, S_ARRAY_LEN(class_names), (*it).c_str());
+				if (pos > -1 && pos > 0) {
+					mask |= (1 << (pos-1));
+				}
+			}
+			query.Classes = mask;
+			continue;
+		}
+		else if (strcasecmp(parts[0].c_str(), "race") == 0) {
+			uint32 mask = 0;
+			std::string spec = parts[2];
+			parts.clear();
+			strsplit(spec.c_str(), '|', parts);
+			for (auto it = parts.begin(); it != parts.end(); ++it) {
+				int pos = aryfind(race_names, S_ARRAY_LEN(race_names), (*it).c_str());
+				if (pos > -1 && pos > 0) {
+					mask |= (1 << (pos-1));
+				}
+			}
+			query.Races = mask;
+			continue;
+		}
+		else if (strcasecmp(parts[0].c_str(), "minlevel") == 0) {
+			query.MinLevel = atoul(parts[2].c_str());
+			continue;
+		}
+		else if (strcasecmp(parts[0].c_str(), "maxlevel") == 0) {
+			query.MaxLevel = atoul(parts[2].c_str());
+			continue;
+		}
+		else if (strcasecmp(parts[0].c_str(), "minexp") == 0) {
+			query.MinExpansion = atoul(parts[2].c_str());
+			continue;
+		}
+		else if (strcasecmp(parts[0].c_str(), "maxexp") == 0) {
+			query.MaxExpansion = atoul(parts[2].c_str());
 			continue;
 		}
 		else if (strcasecmp(parts[0].c_str(), "damage") == 0) {
@@ -12973,8 +13260,17 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 
 		limit.test = atoi(parts[2].c_str());
 
+		for (auto qiter = query.QStats.begin(); qiter != query.QStats.end(); qiter++) {
+			if ((*qiter).stat == limit.stat) {
+				query.QStats.erase(qiter);
+				break;
+			}
+		}
+
 		query.QStats.push_back(limit);
 	}
+
+	EQEmu::item_quest::SetLastQuery(c->CharacterID(), query);
 
 	std::vector<EQEmu::item_quest::ItemQuestResultItem> results;
 	if (!EQEmu::item_quest::Query(query, results)) {
@@ -12987,7 +13283,7 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 	for (auto iter = results.begin();  iter != results.end(); ++iter, i++) {
 		str.clear();
 		str.append(StringFormat("%03d ", (i+1)));
-		formatQuestResult((*iter),str);
+		formatQuestResult((*iter),str,query.Zone);
 		c->Message(0, str.c_str());
 	}
 }

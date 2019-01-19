@@ -56,6 +56,7 @@ extern void MapOpcodes();
 extern void ClearMappedOpcode(EmuOpcode op);
 
 void unregister_event(std::string package_name, std::string name, int evt);
+void lua_debug(std::string message);
 
 void load_encounter(std::string name) {
 	if(lua_encounters_loaded.count(name) > 0)
@@ -276,11 +277,20 @@ void unregister_spell_event(int evt, int spell_id) {
 	std::string name = quest_manager.GetEncounter();
 	unregister_spell_event(name, evt, spell_id);
 }
-
 Lua_Mob lua_spawn2(int npc_type, int grid, int unused, double x, double y, double z, double heading) {
 	auto position = glm::vec4(x, y, z, heading);
 	return Lua_Mob(quest_manager.spawn2(npc_type, grid, unused, position));
 }
+
+Lua_Mob lua_spawn2d(int npc_type, int grid, int unused, std::string x, std::string y, std::string z, std::string heading) {
+	double X = atof(x.c_str());
+	double Y = atof(y.c_str());
+	double Z = atof(z.c_str());
+	double H = atof(heading.c_str());
+
+	return lua_spawn2(npc_type, grid, unused, X, Y, Z, H);
+}
+
 
 Lua_Mob lua_unique_spawn(int npc_type, int grid, int unused, double x, double y, double z, double heading = 0.0) {
 	auto position = glm::vec4(x, y, z, heading);
@@ -2494,6 +2504,7 @@ luabind::scope lua_register_general() {
 		luabind::def("unregister_spell_event", (void(*)(std::string, int, int))&unregister_spell_event),
 		luabind::def("unregister_spell_event", (void(*)(int, int))&unregister_spell_event),
 		luabind::def("spawn2", (Lua_Mob(*)(int,int,int,double,double,double,double))&lua_spawn2),
+		luabind::def("spawn2d", (Lua_Mob(*)(int,int,int,std::string,std::string,std::string,std::string))&lua_spawn2d),
 		luabind::def("unique_spawn", (Lua_Mob(*)(int,int,int,double,double,double))&lua_unique_spawn),
 		luabind::def("unique_spawn", (Lua_Mob(*)(int,int,int,double,double,double,double))&lua_unique_spawn),
 		luabind::def("spawn_from_spawn2", (Lua_Mob(*)(uint32))&lua_spawn_from_spawn2),

@@ -2242,6 +2242,8 @@ bool NPC::Death(Mob* killer_mob, int32 damage, uint16 spell, EQ::skills::SkillTy
 		safe_delete(outapp);
 	}
 
+	SetEntityVariable("wasMobId", itoa(GetID()));
+
 	auto app = new EQApplicationPacket(OP_Death, sizeof(Death_Struct));
 	Death_Struct* d = (Death_Struct*)app->pBuffer;
 	d->spawn_id = GetID();

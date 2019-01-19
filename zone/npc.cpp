@@ -2413,6 +2413,15 @@ void NPC::ModifyNPCStat(const char *identifier, const char *new_value)
 		trackable = atoi(val.c_str());
 		return;
 	}
+	else if (id == "dmg_mul") {
+		float mul = atof(val.c_str());
+		min_dmg = (int)(min_dmg * mul);
+		max_dmg = (int)(max_dmg * mul);
+
+		base_damage = round((max_dmg - min_dmg) / 1.9);
+		min_damage  = min_dmg - round(base_damage / 10.0);
+		return;
+	}
 	else if (id == "min_hit") {
 		min_dmg     = atoi(val.c_str());
 		// TODO: fix DB

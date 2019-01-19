@@ -369,6 +369,7 @@ void command_bot(Client*c, const Seperator *sep);
 #endif
 
 void command_itemquestquery(Client *c, const Seperator *sep);
+void command_itemquestqueryz(Client *c, const Seperator *sep);
 void command_itemquestset(Client *c, const Seperator *sep);
 
 #endif
