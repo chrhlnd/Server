@@ -170,7 +170,7 @@ namespace EQEmu
 			}
 		};
 
-		extern bool Pick(uint32 item_id, int32 minlevel, int32 maxlevel, int32 min_exp, int32 max_exp, int32 rnd, const char* zone, ItemQuestPickResult& result);
+		extern bool Pick(uint32 item_id, bool exactItem, int32 minlevel, int32 maxlevel, int32 min_exp, int32 max_exp, int32 rnd, const char* zone, ItemQuestPickResult& result);
 
 		extern std::string GetLastPick(uint32 charid);
 		extern void        SetLastPick(uint32 charid, const ItemQuestPickResult& pick, const std::string expire = "1h");

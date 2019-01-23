@@ -26,6 +26,7 @@
 #include "lua_encounter.h"
 #include "data_bucket.h"
 #include "expedition.h"
+#include "merchant_manage.h"
 
 struct Events { };
 struct Factions { };
@@ -57,6 +58,14 @@ extern void ClearMappedOpcode(EmuOpcode op);
 
 void unregister_event(std::string package_name, std::string name, int evt);
 void lua_debug(std::string message);
+
+void merchant_additem(uint32 npc_type, uint32 itemid, int32 faction, int32 level, int32 alt_cost, uint32 classes, int32 prob) {
+	MerchantAddItem(npc_type, itemid, faction, level, alt_cost, classes, prob);
+}
+
+void merchant_remitem(uint32 npc_type, uint32 item_id) {
+	MerchantRemItem(npc_type, item_id);
+}
 
 void load_encounter(std::string name) {
 	if(lua_encounters_loaded.count(name) > 0)
@@ -2483,6 +2492,9 @@ bool get_ruleb(int rule) {
 luabind::scope lua_register_general() {
 	return luabind::namespace_("eq")
 	[
+
+		luabind::def("merchant_additem", &merchant_additem),
+		luabind::def("merchant_remitem", &merchant_remitem),
 		luabind::def("load_encounter", &load_encounter),
 		luabind::def("unload_encounter", &unload_encounter),
 		luabind::def("load_encounter_with_data", &load_encounter_with_data),

@@ -12762,8 +12762,10 @@ void command_itemquestset(Client *c, const Seperator *sep) {
 	std::string zoneLock;
 
 	auto linkmarker = fullmsg.find('\x12');
+	auto exactItem  = false;
 	//Log(Logs::General, Logs::Debug, "Link marker %d", linkmarker);
 	if (linkmarker != std::string::npos) {
+		exactItem = true;
 		auto linkmarker_end = fullmsg.find((char)0x12, linkmarker+1);
 
 		std::string encodedLink;
@@ -12847,7 +12849,7 @@ void command_itemquestset(Client *c, const Seperator *sep) {
 	}
 
 	EQEmu::item_quest::ItemQuestPickResult result;
-	if (!EQEmu::item_quest::Pick(itemid, minlevel, maxlevel, 1, 8, rnd, zoneName, result)) {
+	if (!EQEmu::item_quest::Pick(itemid, exactItem, minlevel, maxlevel, 1, 8, rnd, zoneName, result)) {
 		c->Message(0, "Error picking item quest");
 		return;
 	}
@@ -13057,8 +13059,8 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 		}
 	}
 
-	query.Classes      = (1 << c->GetClass());
-	query.Races        = (1 << c->GetRace());
+	query.Classes      = (1 << (c->GetClass()-1));
+	query.Races        = (1 << (c->GetRace()-1));
 	query.MinLevel     = std::max(1,c->GetLevel()-5);
 	query.MaxLevel     = c->GetLevel()+5;
 	query.MinExpansion = 1;

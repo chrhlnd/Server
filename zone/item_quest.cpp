@@ -111,7 +111,7 @@ long long EQEmu::item_quest::GetLastQueryRemain(uint32 charid) {
 	return expiresAt - now;
 }
 
-bool EQEmu::item_quest::Pick(uint32 item_id, int32 min_level, int32 max_level, int32 min_exp, int32 max_exp, int32 rnd, const char* zone, ItemQuestPickResult& result) {
+bool EQEmu::item_quest::Pick(uint32 item_id, bool exact, int32 min_level, int32 max_level, int32 min_exp, int32 max_exp, int32 rnd, const char* zone, ItemQuestPickResult& result) {
 	const char* SQL =
 	"select \n"
 	"npc.id, cd.chance, cd.spawn_chance, npc.aggroradius, npc.name, sp2.id, sp2.spawngroupID, sp2.x, sp2.y, sp2.z, sp2.heading, sp2.zone, zone.zoneidnumber \n"
@@ -123,12 +123,16 @@ bool EQEmu::item_quest::Pick(uint32 item_id, int32 min_level, int32 max_level, i
 	"inner join zone                  on zone.short_name  = sp2.zone \n"
 	"inner join classify_drops cd     on cd.id            = le.item_id \n"
 	"where \n"
-	"  le.item_id = %d %s"
-	"  and npc.level >= %d and npc.level <= %d \n"
+	"  le.item_id = %d \n"
+	"  %s " // zone filter
+	"  %s " // npc filter
 	"  order by rand(%d) \n"
 	"  limit 1 \n"
 	"  ;"
 	;
+	//"  and npc.level >= %d and npc.level <= %d \n"
+
+	const char* npcLevel         = "and npc.level >= %d and npc.level <= %d \n";
 
 	const char* zoneFilterExact  = "and sp2.zone = '%s'\n";
 	const char* zoneFilterMinMax = "and zone.`expansion` >= %d and zone.`expansion` <= %d\n";
@@ -140,7 +144,13 @@ bool EQEmu::item_quest::Pick(uint32 item_id, int32 min_level, int32 max_level, i
 		zoneFilter = StringFormat(zoneFilterMinMax, min_exp, max_exp);
 	}
 
-	std::string sql = StringFormat(SQL, item_id, zoneFilter.c_str(), min_level, max_level, rnd);
+	std::string levelFilter;
+	if (!exact) {
+		levelFilter = StringFormat(npcLevel, min_level, max_level);
+	}
+
+	std::string sql = StringFormat(SQL, item_id, zoneFilter.c_str(), levelFilter.c_str(), rnd);
+	Log(Logs::General, Logs::Debug, "item_quest::Pick: %s", sql.c_str());
 	auto results = database.QueryDatabase(sql);
 	if (!results.Success()) {
 		Log(Logs::General, Logs::Error, "item_quest::Pick: %s", sql.c_str());
@@ -319,7 +329,7 @@ bool EQEmu::item_quest::Query(ItemQuestQuery &query, std::vector<ItemQuestResult
 		sql.append(s);
 	}
 
-	//Log(Logs::General, Logs::Debug, "item_quest::Query: %s", sql.c_str());
+	Log(Logs::General, Logs::Debug, "item_quest::Query: %s", sql.c_str());
 	auto results = database.QueryDatabase(sql);
 	if (!results.Success()) {
 		Log(Logs::General, Logs::Error, "item_quest::Query: %s", results.ErrorMessage().c_str());
