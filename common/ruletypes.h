@@ -36,6 +36,7 @@
 
 
 RULE_CATEGORY(Character)
+RULE_BOOL(Character, BuffOnlyTickInCombat, false)
 RULE_INT(Character, MaxLevel, 65, "Sets the highest level for players that can be reached through experience")
 RULE_BOOL(Character, PerCharacterQglobalMaxLevel, false, "Check for qglobal 'CharMaxLevel' character qglobal (Type 5, \"\"), if player tries to level beyond that point, it will not go beyond that level")
 RULE_BOOL(Character, PerCharacterBucketMaxLevel, false, "Check for data bucket 'CharMaxLevel', if player tries to level beyond that point, it will not go beyond that level")

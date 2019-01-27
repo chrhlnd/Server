@@ -2917,7 +2917,12 @@ uint32 Client::GetEquipmentColor(uint8 material_slot) const
 	if (material_slot > EQ::textures::LastTexture)
 		return 0;
 
-	const EQ::ItemData *item = database.GetItem(GetEquippedItemFromTextureSlot(material_slot));
+	auto itemid = GetOverrideMaterialItem(material_slot);
+	if (itemid == 0) {
+		itemid = GetEquipment(material_slot);
+	}
+
+	auto item = database.GetItem(itemid);
 	if(item != nullptr)
 		return ((m_pp.item_tint.Slot[material_slot].UseTint) ? m_pp.item_tint.Slot[material_slot].Color : item->Color);
 

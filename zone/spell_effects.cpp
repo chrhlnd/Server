@@ -3458,13 +3458,22 @@ void Mob::BuffProcess()
 			if(buffs[buffs_i].spellid == SPELL_UNKNOWN)
 				continue;
 
+			bool charactertick = true;
+			if (RuleB(Character, BuffOnlyTickInCombat))
+				if (IsClient())
+					if (CastToClient()->GetAggroCount() == 0)
+						if (IsBeneficialSpell(buffs[buffs_i].spellid))
+							charactertick = false;
+								
+			bool ticked = false;
+
 			// DF_Permanent uses -1 DF_Aura uses -4 but we need to check negatives for some spells for some reason?
 			if (spells[buffs[buffs_i].spellid].buffdurationformula != DF_Permanent &&
 			    spells[buffs[buffs_i].spellid].buffdurationformula != DF_Aura) {
-				if(!zone->BuffTimersSuspended() || !IsSuspendableSpell(buffs[buffs_i].spellid))
+				if((!zone->BuffTimersSuspended() && charactertick) || !IsSuspendableSpell(buffs[buffs_i].spellid))
 				{
 					--buffs[buffs_i].ticsremaining;
-
+					ticked = true;
 					if (buffs[buffs_i].ticsremaining < 0) {
 						LogSpells("Buff [{}] in slot [{}] has expired. Fading", buffs[buffs_i].spellid, buffs_i);
 						BuffFadeBySlot(buffs_i);
@@ -3480,10 +3489,17 @@ void Mob::BuffProcess()
 				}
 			}
 
+			if (RuleB(Character, BuffOnlyTickInCombat)) {
+				if (!ticked) {
+					buffs[buffs_i].UpdateClient = true;
+				}
+			}
+
 			if(IsClient())
 			{
 				if(buffs[buffs_i].UpdateClient == true)
 				{
+					Log(Logs::Detail, Logs::Spells, "Buff %d in slot %d UPDATING client with %d tics remaining.", buffs[buffs_i].spellid, buffs_i, buffs[buffs_i].ticsremaining);
 					CastToClient()->SendBuffDurationPacket(buffs[buffs_i], buffs_i);
 					// Hack to get UF to play nicer, RoF seems fine without it
 					if (CastToClient()->ClientVersion() == EQ::versions::ClientVersion::UF && buffs[buffs_i].numhits > 0)

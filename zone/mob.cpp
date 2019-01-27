@@ -2896,6 +2896,303 @@ uint32 Mob::RandomTimer(int min, int max)
 	return r;
 }
 
+uint32 NPC::GetEquipment(uint8 material_slot) const
+{
+	if(material_slot > 8)
+		return 0;
+	int16 invslot = EQEmu::InventoryProfile::CalcSlotFromMaterial(material_slot);
+	if (invslot == INVALID_INDEX)
+		return 0;
+	return equipment[invslot];
+}
+
+void Mob::SendArmorAppearance(Client *one_client)
+{
+	// one_client of 0 means sent to all clients
+	//
+	// Despite the fact that OP_NewSpawn and OP_ZoneSpawns include the
+	// armor being worn and its mats, the client doesn't update the display
+	// on arrival of these packets reliably.
+	//
+	// Send Wear changes if mob is a PC race and item is an armor slot.
+	// The other packets work for primary/secondary.
+
+	if (IsPlayerRace(race))
+	{
+		if (!IsClient())
+		{
+			const EQEmu::ItemData *item = nullptr;
+			for (int i = 0; i < 7; ++i)
+			{
+				item = database.GetItem(GetEquipment(i));
+				if (item != 0)
+				{
+					SendWearChange(i, one_client);
+				}
+			}
+		}
+	}
+}
+
+void Mob::SendWearChange(uint8 material_slot, Client *one_client)
+{
+	auto outapp = new EQApplicationPacket(OP_WearChange, sizeof(WearChange_Struct));
+	WearChange_Struct* wc = (WearChange_Struct*)outapp->pBuffer;
+
+	wc->spawn_id = GetID();
+	wc->material = GetEquipmentMaterial(material_slot);
+	wc->elite_material = IsEliteMaterialItem(material_slot);
+	wc->hero_forge_model = GetHerosForgeModel(material_slot);
+
+#ifdef BOTS
+	if (IsBot()) {
+		auto item_inst = CastToBot()->GetBotItem(EQEmu::InventoryProfile::CalcSlotFromMaterial(material_slot));
+		if (item_inst)
+			wc->color.Color = item_inst->GetColor();
+		else
+			wc->color.Color = 0;
+	}
+	else {
+		wc->color.Color = GetEquipmentColor(material_slot);
+	}
+#else
+	wc->color.Color = GetEquipmentColor(material_slot);
+#endif
+
+	wc->wear_slot_id = material_slot;
+
+	if (!one_client)
+	{
+		entity_list.QueueClients(this, outapp);
+	}
+	else
+	{
+		one_client->QueuePacket(outapp, false, Client::CLIENT_CONNECTED);
+	}
+
+	safe_delete(outapp);
+}
+
+void Mob::SendTextureWC(uint8 slot, uint16 texture, uint32 hero_forge_model, uint32 elite_material, uint32 unknown06, uint32 unknown18)
+{
+	auto outapp = new EQApplicationPacket(OP_WearChange, sizeof(WearChange_Struct));
+	WearChange_Struct* wc = (WearChange_Struct*)outapp->pBuffer;
+
+	wc->spawn_id = this->GetID();
+	wc->material = texture;
+	if (this->IsClient())
+		wc->color.Color = GetEquipmentColor(slot);
+	else
+		wc->color.Color = this->GetArmorTint(slot);
+	wc->wear_slot_id = slot;
+
+	wc->unknown06 = unknown06;
+	wc->elite_material = elite_material;
+	wc->hero_forge_model = hero_forge_model;
+	wc->unknown18 = unknown18;
+
+
+	entity_list.QueueClients(this, outapp);
+	safe_delete(outapp);
+}
+
+void Mob::SetSlotTint(uint8 material_slot, uint8 red_tint, uint8 green_tint, uint8 blue_tint)
+{
+	uint32 color;
+	color = (red_tint & 0xFF) << 16;
+	color |= (green_tint & 0xFF) << 8;
+	color |= (blue_tint & 0xFF);
+	color |= (color) ? (0xFF << 24) : 0;
+	armor_tint.Slot[material_slot].Color = color;
+
+	auto outapp = new EQApplicationPacket(OP_WearChange, sizeof(WearChange_Struct));
+	WearChange_Struct* wc = (WearChange_Struct*)outapp->pBuffer;
+
+	wc->spawn_id = this->GetID();
+	wc->material = GetEquipmentMaterial(material_slot);
+	wc->hero_forge_model = GetHerosForgeModel(material_slot);
+	wc->color.Color = color;
+	wc->wear_slot_id = material_slot;
+
+	entity_list.QueueClients(this, outapp);
+	safe_delete(outapp);
+}
+
+void Mob::WearChange(uint8 material_slot, uint16 texture, uint32 color, uint32 hero_forge_model)
+{
+	armor_tint.Slot[material_slot].Color = color;
+
+	auto outapp = new EQApplicationPacket(OP_WearChange, sizeof(WearChange_Struct));
+	WearChange_Struct* wc = (WearChange_Struct*)outapp->pBuffer;
+
+	wc->spawn_id = this->GetID();
+	wc->material = texture;
+	wc->hero_forge_model = hero_forge_model;
+	wc->color.Color = color;
+	wc->wear_slot_id = material_slot;
+
+	entity_list.QueueClients(this, outapp);
+	safe_delete(outapp);
+}
+
+void Mob::SetOverrideMaterialItem(uint8 slot, uint32 item) {
+	material_override[slot] = item;
+}
+
+uint32 Mob::GetOverrideMaterialItem(uint8 slot) const {
+	auto omat = material_override.find(slot);
+	if (omat != material_override.end()) {
+		return omat->second;
+	}
+	return 0;
+}
+
+void Mob::ClearOverrideMaterialItems() {
+	auto it = material_override.begin();
+	while (it != material_override.end()) {
+		auto slot = it->first;
+		material_override.erase(it);
+		SendWearChange(slot);
+		it = material_override.begin();
+	}
+}
+
+int32 Mob::GetEquipmentMaterial(uint8 material_slot) const
+{
+	uint32 equipmaterial = 0;
+	int32 ornamentationAugtype = RuleI(Character, OrnamentationAugmentType);
+	const EQEmu::ItemData *item = nullptr;
+
+	auto itemid = GetOverrideMaterialItem(material_slot);
+	if (itemid == 0) {
+		itemid = GetEquipment(material_slot);
+	}
+
+	item = database.GetItem(itemid);
+
+	if (item != 0)
+	{
+		// For primary and secondary we need the model, not the material
+		if (material_slot == EQEmu::textures::weaponPrimary || material_slot == EQEmu::textures::weaponSecondary)
+		{
+			if (this->IsClient())
+			{
+				int16 invslot = EQEmu::InventoryProfile::CalcSlotFromMaterial(material_slot);
+				if (invslot == INVALID_INDEX)
+				{
+					return 0;
+				}
+				const EQEmu::ItemInstance* inst = CastToClient()->m_inv[invslot];
+				if (inst)
+				{
+					if (inst->GetOrnamentationAug(ornamentationAugtype))
+					{
+						item = inst->GetOrnamentationAug(ornamentationAugtype)->GetItem();
+						if (item && strlen(item->IDFile) > 2)
+						{
+							equipmaterial = atoi(&item->IDFile[2]);
+						}
+					}
+					else if (inst->GetOrnamentationIDFile())
+					{
+						equipmaterial = inst->GetOrnamentationIDFile();
+					}
+				}
+			}
+
+			if (equipmaterial == 0 && strlen(item->IDFile) > 2)
+			{
+				equipmaterial = atoi(&item->IDFile[2]);
+			}
+		}
+		else
+		{
+			equipmaterial = item->Material;
+		}
+	}
+
+	return equipmaterial;
+}
+
+int32 Mob::GetHerosForgeModel(uint8 material_slot) const
+{
+	uint32 HeroModel = 0;
+	if (material_slot >= 0 && material_slot < EQEmu::textures::weaponPrimary)
+	{
+		uint32 ornamentationAugtype = RuleI(Character, OrnamentationAugmentType);
+		const EQEmu::ItemData *item = nullptr;
+		item = database.GetItem(GetEquipment(material_slot));
+		int16 invslot = EQEmu::InventoryProfile::CalcSlotFromMaterial(material_slot);
+
+		if (item != 0 && invslot != INVALID_INDEX)
+		{
+			if (IsClient())
+			{
+				const EQEmu::ItemInstance* inst = CastToClient()->m_inv[invslot];
+				if (inst)
+				{
+					if (inst->GetOrnamentationAug(ornamentationAugtype))
+					{
+						item = inst->GetOrnamentationAug(ornamentationAugtype)->GetItem();
+						HeroModel = item->HerosForgeModel;
+					}
+					else if (inst->GetOrnamentHeroModel())
+					{
+						HeroModel = inst->GetOrnamentHeroModel();
+					}
+				}
+			}
+
+			if (HeroModel == 0)
+			{
+				HeroModel = item->HerosForgeModel;
+			}
+		}
+
+		if (IsNPC())
+		{
+			HeroModel = CastToNPC()->GetHeroForgeModel();
+			// Robes require full model number, and should only be sent to chest, arms, wrists, and legs slots
+			if (HeroModel > 1000 && material_slot != 1 && material_slot != 2 && material_slot != 3 && material_slot != 5)
+			{
+				HeroModel = 0;
+			}
+		}
+	}
+
+	// Auto-Convert Hero Model to match the slot
+	// Otherwise, use the exact Model if model is > 999
+	// Robes for example are 11607 to 12107 in RoF
+	if (HeroModel > 0 && HeroModel < 1000)
+	{
+		HeroModel *= 100;
+		HeroModel += material_slot;
+	}
+
+	return HeroModel;
+}
+
+uint32 Mob::GetEquipmentColor(uint8 material_slot) const
+{
+	const EQEmu::ItemData *item = nullptr;
+
+	if (armor_tint.Slot[material_slot].Color)
+	{
+		return armor_tint.Slot[material_slot].Color;
+	}
+
+	auto itemid = GetOverrideMaterialItem(material_slot);
+	if (itemid == 0) {
+		itemid = GetEquipment(material_slot);
+	}
+
+	item = database.GetItem(itemid);
+	if (item != 0)
+		return item->Color;
+
+	return 0;
+}
+
 uint32 Mob::IsEliteMaterialItem(uint8 material_slot) const
 {
 	const EQ::ItemData *item = nullptr;

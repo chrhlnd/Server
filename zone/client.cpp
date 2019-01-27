@@ -9223,7 +9223,6 @@ void Client::SetDevToolsEnabled(bool in_dev_tools_enabled)
 {
 	Client::dev_tools_enabled = in_dev_tools_enabled;
 }
-
 /**
  * @param model_id
  */

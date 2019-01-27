@@ -1592,6 +1592,15 @@ protected:
 
 	MobMovementManager *mMovementManager;
 
+public:
+	void SetOverrideMaterialItem(uint8 slot, uint32 item);
+	void ClearOverrideMaterialItems();
+	uint32 GetOverrideMaterialItem(uint8 slot) const;
+
+protected:
+
+	std::unordered_map<uint8,uint32> material_override;
+
 private:
 	void _StopSong(); //this is not what you think it is
 	Mob* target;

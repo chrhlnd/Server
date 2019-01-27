@@ -332,9 +332,11 @@ public:
 	void DisableAreaEndRegen();
 	void EnableAreaRegens(int value);
 	void DisableAreaRegens();
-
 	void SetPrimaryWeaponOrnamentation(uint32 model_id);
 	void SetSecondaryWeaponOrnamentation(uint32 model_id);
+	void SetOverrideMaterialItem(int slot, uint32 item);
+	void ClearOverrideMaterialItems();
+	uint32 GetOverrideMaterialItem(int slot) const;
 
 	void SetClientMaxLevel(int value);
 	int GetClientMaxLevel();

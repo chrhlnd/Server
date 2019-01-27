@@ -423,6 +423,9 @@ public:
 	int GetBodyType();
 	int GetOrigBodyType();
 	void CheckNumHitsRemaining(int type, int32 buff_slot, uint16 spell_id);
+	void SetOverrideMaterialItem(uint8 slot, uint32 item);
+	void ClearOverrideMaterialItems();
+	uint32 GetOverrideMaterialItem(uint8 slot) const;
 };
 
 #endif

@@ -1301,6 +1301,7 @@ bool Zone::LoadZoneCFG(const char* filename, uint16 instance_id)
 		}
 	}
 
+	
 	//overwrite with our internal variables
 	strcpy(newzone_data.zone_short_name, GetShortName());
 	strcpy(newzone_data.zone_long_name, GetLongName());

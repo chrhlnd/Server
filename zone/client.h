@@ -883,6 +883,7 @@ public:
 			(invWhereWorn | invWherePersonal | invWhereBank | invWhereSharedBank | invWhereTrading | invWhereCursor));
 	void SetTint(int16 slot_id, uint32 color);
 	void SetTint(int16 slot_id, EQ::textures::Tint_Struct& color);
+	void SetMaterialTo(int16 in_slot, uint32 item_id);
 	void SetMaterial(int16 slot_id, uint32 item_id);
 	void Undye();
 	int32 GetItemIDAt(int16 slot_id);

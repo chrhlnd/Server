@@ -2257,6 +2257,21 @@ void Lua_Mob::CheckNumHitsRemaining(int type, int32 buff_slot, uint16 spell_id)
 	self->CheckNumHitsRemaining((NumHit)type, buff_slot, spell_id);
 }
 
+void Lua_Mob::SetOverrideMaterialItem(uint8 slot, uint32 item) {
+	Lua_Safe_Call_Void();
+	self->SetOverrideMaterialItem(slot, item);
+}
+
+void Lua_Mob::ClearOverrideMaterialItems() {
+	Lua_Safe_Call_Void();
+	self->ClearOverrideMaterialItems();
+}
+
+uint32 Lua_Mob::GetOverrideMaterialItem(uint8 slot) const {
+	Lua_Safe_Call_Int();
+	return self->GetOverrideMaterialItem(slot);
+}
+
 luabind::scope lua_register_mob() {
 	return luabind::class_<Lua_Mob, Lua_Entity>("Mob")
 		.def(luabind::constructor<>())
@@ -2645,7 +2660,10 @@ luabind::scope lua_register_mob() {
 		.def("TryFinishingBlow", &Lua_Mob::TryFinishingBlow)
 		.def("GetBodyType", &Lua_Mob::GetBodyType)
 		.def("GetOrigBodyType", &Lua_Mob::GetOrigBodyType)
-		.def("CheckNumHitsRemaining", &Lua_Mob::CheckNumHitsRemaining);
+		.def("CheckNumHitsRemaining", &Lua_Mob::CheckNumHitsRemaining)
+		.def("SetOverrideMaterialItem", &Lua_Mob::SetOverrideMaterialItem)
+		.def("ClearOverrideMaterialItems", &Lua_Mob::ClearOverrideMaterialItems)
+		.def("GetOverrideMaterialItem", &Lua_Mob::GetOverrideMaterialItem);
 }
 
 luabind::scope lua_register_special_abilities() {

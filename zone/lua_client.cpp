@@ -734,6 +734,22 @@ void Lua_Client::SetMaterial(int slot_id, uint32 item_id) {
 	self->SetMaterial(slot_id, item_id);
 }
 
+void Lua_Client::SetOverrideMaterialItem(int slot_id, uint32 item_id) {
+	Lua_Safe_Call_Void();
+	self->SetOverrideMaterialItem(slot_id, item_id);
+	self->SendWearChange(slot_id);
+}
+
+uint32 Lua_Client::GetOverrideMaterialItem(int slot_id) const {
+	Lua_Safe_Call_Int();
+	self->GetOverrideMaterialItem(slot_id);
+}
+
+void Lua_Client::ClearOverrideMaterialItems() {
+	Lua_Safe_Call_Void();
+	self->ClearOverrideMaterialItems();
+}
+
 void Lua_Client::Undye() {
 	Lua_Safe_Call_Void();
 	self->Undye();
@@ -2025,6 +2041,9 @@ luabind::scope lua_register_client() {
 		.def("NukeItem", (void(Lua_Client::*)(uint32,int))&Lua_Client::NukeItem)
 		.def("SetTint", (void(Lua_Client::*)(int,uint32))&Lua_Client::SetTint)
 		.def("SetMaterial", (void(Lua_Client::*)(int,uint32))&Lua_Client::SetMaterial)
+		.def("SetOverrideMaterialItem", (void(Lua_Client::*)(int,uint32))&Lua_Client::SetOverrideMaterialItem)
+		.def("ClearOverrideMaterialItems",(void(Lua_Client::*)(void)) &Lua_Client::ClearOverrideMaterialItems)
+		.def("GetOverrideMaterialItem", (uint32(Lua_Client::*)(int))&Lua_Client::GetOverrideMaterialItem)
 		.def("Undye", (void(Lua_Client::*)(void))&Lua_Client::Undye)
 		.def("GetItemIDAt", (int(Lua_Client::*)(int))&Lua_Client::GetItemIDAt)
 		.def("GetAugmentIDAt", (int(Lua_Client::*)(int,int))&Lua_Client::GetAugmentIDAt)
