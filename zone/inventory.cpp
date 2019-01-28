@@ -2919,7 +2919,7 @@ uint32 Client::GetEquipmentColor(uint8 material_slot) const
 
 	auto itemid = GetOverrideMaterialItem(material_slot);
 	if (itemid == 0) {
-		itemid = GetEquipment(material_slot);
+		itemid = GetEquippedItemFromTextureSlot(material_slot); // GetEquipment(material_slot);
 	}
 
 	auto item = database.GetItem(itemid);

@@ -223,7 +223,12 @@ int32 Mob::GetEquipmentMaterial(uint8 material_slot) const
 		return texture_profile_material;
 	}
 
-	auto item = database.GetItem(GetEquippedItemFromTextureSlot(material_slot));
+	auto itemid = GetOverrideMaterialItem(material_slot);
+	if (itemid == 0) {
+		itemid = GetEquippedItemFromTextureSlot(material_slot);
+	}
+
+	auto item = database.GetItem(itemid);
 
 	if (item != nullptr) {
 
@@ -280,12 +285,39 @@ uint32 Mob::GetEquipmentColor(uint8 material_slot) const
 		return armor_tint.Slot[material_slot].Color;
 	}
 
-	item = database.GetItem(GetEquippedItemFromTextureSlot(material_slot));
+	auto itemid = GetOverrideMaterialItem(material_slot);
+	if (itemid == 0) {
+		itemid = GetEquippedItemFromTextureSlot(material_slot);
+	}
+
+	item = database.GetItem(itemid);
 	if (item != nullptr) {
 		return item->Color;
 	}
 
 	return 0;
+}
+
+void Mob::SetOverrideMaterialItem(uint8 slot, uint32 item) {
+	material_override[slot] = item;
+}
+
+uint32 Mob::GetOverrideMaterialItem(uint8 slot) const {
+	auto omat = material_override.find(slot);
+	if (omat != material_override.end()) {
+		return omat->second;
+	}
+	return 0;
+}
+
+void Mob::ClearOverrideMaterialItems() {
+	auto it = material_override.begin();
+	while (it != material_override.end()) {
+		auto slot = it->first;
+		material_override.erase(it);
+		SendWearChange(slot);
+		it = material_override.begin();
+	}
 }
 
 /**
