@@ -141,6 +141,10 @@ std::map<std::string, std::list<lua_registered_event>> lua_encounter_events_regi
 std::map<std::string, bool> lua_encounters_loaded;
 std::map<std::string, Encounter *> lua_encounters;
 
+void LuaParser::NewTable(luabind::adl::object *fillin) {
+	*fillin = luabind::newtable(L);
+}
+
 LuaParser::LuaParser() {
 	for(int i = 0; i < _LargestEventID; ++i) {
 		NPCArgumentDispatch[i] = handle_npc_null;

@@ -1684,6 +1684,16 @@ void Mob::DoAnim(const int animnum, int type, bool ackreq, eqFilterType filter)
 	safe_delete(outapp);
 }
 
+void Mob::BuffSpellIds(std::vector<uint32>& found) {
+	uint32 i;
+	uint32 buff_count = GetMaxTotalSlots();
+	for (i=0; i < buff_count; i++) {
+		if (buffs[i].spellid != SPELL_UNKNOWN) {
+			found.push_back(buffs[i].spellid);
+		}
+	}	
+}
+
 void Mob::ShowBuffs(Client* client) {
 	if(SPDAT_RECORDS <= 0)
 		return;

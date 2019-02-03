@@ -4440,6 +4440,18 @@ int Mob::GetResist(uint8 resist_type)
 	}
 }
 
+void Mob::AddSpellImmune(uint32 spell, uint32 endtime, uint32 esec) {
+	spell_immune[spell] = std::pair<uint32,uint32>(endtime,esec);
+}
+
+void Mob::RemSpellImmune(uint32 spell) {
+	spell_immune.erase(spell_immune.find(spell));
+}
+
+void Mob::ClearSpellImmune() {
+	spell_immune.clear();
+}
+
 //
 // Spell resists:
 // returns an effectiveness index from 0 to 100. for most spells, 100 means
@@ -4474,6 +4486,18 @@ float Mob::ResistSpell(uint8 resist_type, uint16 spell_id, Mob *caster, bool use
 	{
 		LogSpells("We are immune to magic, so we fully resist the spell [{}]", spell_id);
 		return(0);
+	}
+
+	auto si = spell_immune.find(spell_id);
+	if (si != spell_immune.end()) {
+		auto now = Timer::GetCurrentTime() / 1000;
+		if (si->second.first > now) {
+			si->second.first = now + si->second.second;
+			Log(Logs::Detail, Logs::Spells, "We are immune to spell %d extended immune by %d sec", spell_id, si->second.second);
+			return(0);
+		} else {
+			spell_immune.erase(si);
+		}
 	}
 
 	//Get resist modifier and adjust it based on focus 2 resist about eq to 1% resist chance

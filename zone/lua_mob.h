@@ -4,6 +4,8 @@
 
 #include "lua_entity.h"
 
+#include "lua_parser.h"
+
 class Mob;
 struct Lua_HateList;
 class Lua_Item;
@@ -88,6 +90,7 @@ public:
 	bool FindType(int type, bool offensive);
 	bool FindType(int type, bool offensive, int threshold);
 	int GetBuffSlotFromType(int slot);
+	luabind::adl::object BuffSpellIds();
 	int GetBaseRace();
 	int GetBaseGender();
 	int GetDeity();
@@ -426,6 +429,9 @@ public:
 	void SetOverrideMaterialItem(uint8 slot, uint32 item);
 	void ClearOverrideMaterialItems();
 	uint32 GetOverrideMaterialItem(uint8 slot) const;
+	void AddSpellImmune(uint32 spell, uint32 lsec, uint32 esec);
+	void RemSpellImmune(uint32 spell);
+	void ClearSpellImmune();
 };
 
 #endif

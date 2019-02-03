@@ -104,6 +104,24 @@ bool Lua_Mob::Attack(Lua_Mob other, int hand, bool from_riposte, bool is_striket
 	return self->Attack(other, hand, from_riposte, is_strikethrough, is_from_spell);
 }
 
+luabind::adl::object Lua_Mob::BuffSpellIds() {
+	Lua_Safe_Call_Class(luabind::adl::object);
+
+	std::vector<uint32> buffs;
+	self->BuffSpellIds(buffs);
+
+	luabind::adl::object list;
+
+	LuaParser::Instance()->NewTable(&list);
+
+	int i = 1;
+	for (auto it = buffs.begin(); it != buffs.end(); ++it ) {
+		list[i++] = *it;
+	}
+
+	return list;
+}
+
 bool Lua_Mob::Attack(Lua_Mob other, int hand, bool from_riposte, bool is_strikethrough, bool is_from_spell, luabind::adl::object opts) {
 	Lua_Safe_Call_Bool();
 
@@ -2272,6 +2290,22 @@ uint32 Lua_Mob::GetOverrideMaterialItem(uint8 slot) const {
 	return self->GetOverrideMaterialItem(slot);
 }
 
+void Lua_Mob::AddSpellImmune(uint32 spell, uint32 lsec, uint32 esec) {
+	Lua_Safe_Call_Void();
+	auto now = Timer::GetCurrentTime() / 1000;
+	self->AddSpellImmune(spell, now + lsec, esec);
+}
+
+void Lua_Mob::RemSpellImmune(uint32 spell) {
+	Lua_Safe_Call_Void();
+	self->RemSpellImmune(spell);
+}
+
+void Lua_Mob::ClearSpellImmune() {
+	Lua_Safe_Call_Void();
+	self->ClearSpellImmune();
+}
+
 luabind::scope lua_register_mob() {
 	return luabind::class_<Lua_Mob, Lua_Entity>("Mob")
 		.def(luabind::constructor<>())
@@ -2663,7 +2697,11 @@ luabind::scope lua_register_mob() {
 		.def("CheckNumHitsRemaining", &Lua_Mob::CheckNumHitsRemaining)
 		.def("SetOverrideMaterialItem", &Lua_Mob::SetOverrideMaterialItem)
 		.def("ClearOverrideMaterialItems", &Lua_Mob::ClearOverrideMaterialItems)
-		.def("GetOverrideMaterialItem", &Lua_Mob::GetOverrideMaterialItem);
+		.def("GetOverrideMaterialItem", &Lua_Mob::GetOverrideMaterialItem)
+		.def("BuffSpellIds", &Lua_Mob::BuffSpellIds)
+		.def("AddSpellImmune", &Lua_Mob::AddSpellImmune)
+		.def("RemSpellImmune", &Lua_Mob::RemSpellImmune)
+		.def("CLearSpellImmune", &Lua_Mob::ClearSpellImmune);
 }
 
 luabind::scope lua_register_special_abilities() {

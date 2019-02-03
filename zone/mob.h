@@ -1197,6 +1197,7 @@ public:
 	int32 GetHPRegen() const;
 	int32 GetManaRegen() const;
 
+	void BuffSpellIds(std::vector<uint32>& buffs);
 
 #ifdef BOTS
 	// Bots HealRotation methods
@@ -1592,7 +1593,16 @@ protected:
 
 	MobMovementManager *mMovementManager;
 
+protected:
+	std::unordered_map<uint32, std::pair<uint32,uint32>> spell_immune;
+
 public:
+	void AddSpellImmune(uint32 spell, uint32 endtime, uint32 esec);
+	void RemSpellImmune(uint32 spell);
+	void ClearSpellImmune();
+
+public:
+
 	void SetOverrideMaterialItem(uint8 slot, uint32 item);
 	void ClearOverrideMaterialItems();
 	uint32 GetOverrideMaterialItem(uint8 slot) const;
