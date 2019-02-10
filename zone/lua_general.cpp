@@ -27,6 +27,7 @@
 #include "data_bucket.h"
 #include "expedition.h"
 #include "merchant_manage.h"
+#include "void.h"
 
 struct Events { };
 struct Factions { };
@@ -1532,6 +1533,98 @@ void lua_world_wide_update_activity(uint32 task_id, int activity_id, int activit
 	quest_manager.WorldWideUpdateActivity(task_id, activity_id, activity_count, min_status, max_status);
 }
 
+#define LuaUnpack(ltab, key, var, c_type) do { \
+	auto cur = ltab[key]; \
+	if(luabind::type(cur) != LUA_TNIL) { \
+		try { \
+			var = luabind::object_cast<c_type>(cur); \
+		} \
+		catch(luabind::cast_failed) { \
+		} \
+	} \
+} while(0)
+
+luabind::adl::object lua_void_query(luabind::adl::object params) {
+	lua_State *L = params.interpreter();
+
+	luabind::adl::object ret = luabind::newtable(L);
+	if(luabind::type(params) != LUA_TTABLE) {
+		return ret;
+	}
+
+	VoidQuery query;
+	Void_NewQuery(query);
+
+	LuaUnpack(params,        "page", query.page        , uint32);
+	LuaUnpack(params,      "pagesz", query.pagesz      , uint32);
+	LuaUnpack(params,       "slots", query.slots       , uint32);
+	LuaUnpack(params,     "classes", query.classes     , uint32);
+	LuaUnpack(params,       "races", query.races       , uint32);
+	LuaUnpack(params,    "minlevel", query.minlevel    , uint32);
+	LuaUnpack(params,    "maxlevel", query.maxlevel    , uint32);
+	LuaUnpack(params,"minexpansion", query.minexpansion, uint32);
+	LuaUnpack(params,"maxexpansion", query.maxexpansion, uint32);
+	LuaUnpack(params,        "name", query.namefilter  , const char*);
+
+	auto cur = params["qstats"];
+	if (luabind::type(cur) != LUA_TNIL && luabind::type(cur) == LUA_TTABLE) {
+		lua_debug("IN qstats");
+		for (int i = 1; true ; i++) {
+			auto itm = cur[i];
+			if (itm == nullptr || luabind::type(itm) == LUA_TNIL) {
+				break;
+			}
+
+			Log(Logs::General, Logs::QuestDebug, " building qstats %d", i);
+
+			EQEmu::item_quest::ItemQuestQueryStatLimit qstat;
+			qstat.stat = (EQEmu::item_quest::QStat)0;
+			qstat.operation = 0;
+			qstat.test = 0;
+
+			uint32 stat = 0;
+			LuaUnpack(params, "stat", stat           , uint32);
+			qstat.stat = (EQEmu::item_quest::QStat)stat;
+			LuaUnpack(params,   "op", qstat.operation, uint32);
+			LuaUnpack(params, "test", qstat.test     , uint32);
+
+			if (qstat.operation > 0 && qstat.stat > 0) {
+				query.qstats.push_back(qstat);
+			}
+		}
+	}
+
+	std::vector<VoidQueryResult> res;
+	Void_Query(query, res);
+
+	int retpos = 1;
+	for (auto it = res.begin(); it != res.end(); it++) {
+		luabind::adl::object item = luabind::newtable(L);
+
+		item["id"] = it->ItemID;
+		item["name"] = it->Name;
+		item["count"] = it->Count;
+		item["minlevel"] = it->MinLevel;
+		item["maxlevel"] = it->MaxLevel;
+		item["minzone"] = it->MinZone;
+		item["maxzone"] = it->MaxZone;
+		item["minexpansion"] = it->MinExpansion;
+		item["maxexpansion"] = it->MaxExpansion;
+
+		ret[retpos++] = item;
+	}
+
+	return ret;
+}
+
+void lua_void_add(uint32 item_id, int32 count) {
+	Void_Add(item_id, count);
+}
+
+uint32 lua_void_count(uint32 item_id) {
+	return Void_Count(item_id);
+}
+
 luabind::adl::object lua_get_qglobals(lua_State *L, Lua_NPC npc, Lua_Client client) {
 	luabind::adl::object ret = luabind::newtable(L);
 
@@ -2814,6 +2907,9 @@ luabind::scope lua_register_general() {
 		luabind::def("zone", &lua_zone),
 		luabind::def("zone_group", &lua_zone_group),
 		luabind::def("zone_raid", &lua_zone_raid),
+		luabind::def("void_query", &lua_void_query),
+		luabind::def("void_add", &lua_void_add),
+		luabind::def("void_count", &lua_void_count),
 		luabind::def("get_zone_id", &lua_get_zone_id),
 		luabind::def("get_zone_long_name", &lua_get_zone_long_name),
 		luabind::def("get_zone_short_name", &lua_get_zone_short_name),

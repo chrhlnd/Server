@@ -1305,6 +1305,11 @@ void Lua_Client::Signal(uint32 id) {
 	self->Signal(id);
 }
 
+uint32 Lua_Client::GetAlternateCurrencyValue(uint32 currency) {
+	Lua_Safe_Call_Int();
+	return self->GetAlternateCurrencyValue(currency);
+}
+
 void Lua_Client::AddAlternateCurrencyValue(uint32 currency, int amount) {
 	Lua_Safe_Call_Void();
 	self->AddAlternateCurrencyValue(currency, amount, 1);

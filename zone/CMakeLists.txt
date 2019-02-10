@@ -152,6 +152,7 @@ SET(zone_sources
 	zone_store.cpp
 	zoning.cpp
 	item_quest.cpp
+	void.cpp
 	merchant_manage.cpp
 )
 
@@ -268,6 +269,7 @@ SET(zone_headers
 	zone_reload.h
 	zone_store.h
 	item_quest.h
+	void.h
 	merchant_manage.h
 )
 
