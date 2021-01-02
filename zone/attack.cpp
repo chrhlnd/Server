@@ -4725,7 +4725,7 @@ const DamageTable &Mob::GetDamageTable() const
 	return which[level - 50];
 }
 
-void Mob::ApplyAnyDamageTable(Mob* attacker, int &damage, const uint16 spell_id, const EQEmu::skills::SkillType skill_used, bool &avoidable, const int8 buffslot, const bool iBuffTic, eSpecialAttacks& special)
+void Mob::ApplyAnyDamageTable(Mob* attacker, int &damage, const uint16 spell_id, const EQ::skills::SkillType skill_used, bool &avoidable, const int8 buffslot, const bool iBuffTic, eSpecialAttacks& special)
 {
 #ifdef LUA_EQEMU
 	DamageAnyInfo info;

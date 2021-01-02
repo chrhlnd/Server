@@ -28,7 +28,7 @@ struct VoidQuery {
 	uint32      minexpansion;
 	uint32      maxexpansion;
 	std::string namefilter;
-	std::vector<EQEmu::item_quest::ItemQuestQueryStatLimit> qstats;
+	std::vector<EQ::item_quest::ItemQuestQueryStatLimit> qstats;
 };
 
 extern void   Void_NewQuery(VoidQuery &query);

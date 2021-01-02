@@ -1577,14 +1577,14 @@ luabind::adl::object lua_void_query(luabind::adl::object params) {
 
 			Log(Logs::General, Logs::QuestDebug, " building qstats %d", i);
 
-			EQEmu::item_quest::ItemQuestQueryStatLimit qstat;
-			qstat.stat = (EQEmu::item_quest::QStat)0;
+			EQ::item_quest::ItemQuestQueryStatLimit qstat;
+			qstat.stat = (EQ::item_quest::QStat)0;
 			qstat.operation = 0;
 			qstat.test = 0;
 
 			uint32 stat = 0;
 			LuaUnpack(params, "stat", stat           , uint32);
-			qstat.stat = (EQEmu::item_quest::QStat)stat;
+			qstat.stat = (EQ::item_quest::QStat)stat;
 			LuaUnpack(params,   "op", qstat.operation, uint32);
 			LuaUnpack(params, "test", qstat.test     , uint32);
 

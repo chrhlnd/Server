@@ -742,7 +742,7 @@ void Lua_Client::SetOverrideMaterialItem(int slot_id, uint32 item_id) {
 
 uint32 Lua_Client::GetOverrideMaterialItem(int slot_id) const {
 	Lua_Safe_Call_Int();
-	self->GetOverrideMaterialItem(slot_id);
+	return self->GetOverrideMaterialItem(slot_id);
 }
 
 void Lua_Client::ClearOverrideMaterialItems() {
@@ -1305,7 +1305,7 @@ void Lua_Client::Signal(uint32 id) {
 	self->Signal(id);
 }
 
-uint32 Lua_Client::GetAlternateCurrencyValue(uint32 currency) {
+int Lua_Client::GetAlternateCurrencyValue(uint32 currency) {
 	Lua_Safe_Call_Int();
 	return self->GetAlternateCurrencyValue(currency);
 }
@@ -1318,11 +1318,6 @@ void Lua_Client::AddAlternateCurrencyValue(uint32 currency, int amount) {
 void Lua_Client::SetAlternateCurrencyValue(uint32 currency, int amount) {
 	Lua_Safe_Call_Void();
 	self->SetAlternateCurrencyValue(currency, amount);
-}
-
-int Lua_Client::GetAlternateCurrencyValue(uint32 currency) {
-	Lua_Safe_Call_Int();
-	return self->GetAlternateCurrencyValue(currency);
 }
 
 void Lua_Client::SendWebLink(const char *site) {

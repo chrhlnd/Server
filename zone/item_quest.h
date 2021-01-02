@@ -9,7 +9,7 @@
 #include "../common/types.h"
 #include "../common/string_util.h"
 
-namespace EQEmu
+namespace EQ
 {
 	namespace item_quest {
 		enum QStat {

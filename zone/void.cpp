@@ -112,87 +112,87 @@ void Void_Query(VoidQuery &query, std::vector<VoidQueryResult> &found) {
 	for (auto qstat = query.qstats.begin(); qstat != query.qstats.end(); ++qstat) {
 		std::string s;
 		switch ((*qstat).stat) {
-			case EQEmu::item_quest::QStat::DAMAGE:
+			case EQ::item_quest::QStat::DAMAGE:
 				s.append(" and (itm.damage ");
 				break;
-			case EQEmu::item_quest::QStat::DELAY:
+			case EQ::item_quest::QStat::DELAY:
 				s.append(" and (itm.delay ");
 				break;
-			case EQEmu::item_quest::QStat::AC:
+			case EQ::item_quest::QStat::AC:
 				s.append(" and (itm.ac ");
 				break;
-			case EQEmu::item_quest::QStat::BAGSLOTS:
+			case EQ::item_quest::QStat::BAGSLOTS:
 				s.append(" and (itm.bagslots ");
 				break;
-			case EQEmu::item_quest::QStat::FOCUS:
+			case EQ::item_quest::QStat::FOCUS:
 				s.append(" and (itm.focus ");
 				break;
-			case EQEmu::item_quest::QStat::HASTE:
+			case EQ::item_quest::QStat::HASTE:
 				s.append(" and (itm.haste ");
 				break;
-			case EQEmu::item_quest::QStat::HP:
+			case EQ::item_quest::QStat::HP:
 				s.append(" and (itm.hp ");
 				break;
-			case EQEmu::item_quest::QStat::REGEN:
+			case EQ::item_quest::QStat::REGEN:
 				s.append(" and (itm.regen ");
 				break;
-			case EQEmu::item_quest::QStat::MANA:
+			case EQ::item_quest::QStat::MANA:
 				s.append(" and (itm.mana ");
 				break;
-			case EQEmu::item_quest::QStat::MANAREGEN:
+			case EQ::item_quest::QStat::MANAREGEN:
 				s.append(" and (itm.manaregen ");
 				break;
-			case EQEmu::item_quest::QStat::MR:
+			case EQ::item_quest::QStat::MR:
 				s.append(" and (itm.mr ");
 				break;
-			case EQEmu::item_quest::QStat::PR:
+			case EQ::item_quest::QStat::PR:
 				s.append(" and (itm.pr ");
 				break;
-			case EQEmu::item_quest::QStat::CR:
+			case EQ::item_quest::QStat::CR:
 				s.append(" and (itm.cr ");
 				break;
-			case EQEmu::item_quest::QStat::DR:
+			case EQ::item_quest::QStat::DR:
 				s.append(" and (itm.dr ");
 				break;
-			case EQEmu::item_quest::QStat::FR:
+			case EQ::item_quest::QStat::FR:
 				s.append(" and (itm.fr ");
 				break;
-			case EQEmu::item_quest::QStat::RANGE:
+			case EQ::item_quest::QStat::RANGE:
 				s.append(" and (itm.range ");
 				break;
-			case EQEmu::item_quest::QStat::SKILLMODTYPE:
+			case EQ::item_quest::QStat::SKILLMODTYPE:
 				s.append(" and (itm.skillmodtype ");
 				break;
-			case EQEmu::item_quest::QStat::PROCEFFECT:
+			case EQ::item_quest::QStat::PROCEFFECT:
 				s.append(" and (itm.proceffect ");
 				break;
-			case EQEmu::item_quest::QStat::WORNEFFECT:
+			case EQ::item_quest::QStat::WORNEFFECT:
 				s.append(" and (itm.worneffect ");
 				break;
-			case EQEmu::item_quest::QStat::FOCUSEFFECT:
+			case EQ::item_quest::QStat::FOCUSEFFECT:
 				s.append(" and (itm.focuseffect ");
 				break;
-			case EQEmu::item_quest::QStat::ITEMTYPE:
+			case EQ::item_quest::QStat::ITEMTYPE:
 				s.append(" and (itm.itemtype ");
 				break;
 		}
 		switch ((*qstat).operation) {
-			case EQEmu::item_quest::Operation::LT:
+			case EQ::item_quest::Operation::LT:
 				s.append(" < ");
 				break;
-			case EQEmu::item_quest::Operation::GT:
+			case EQ::item_quest::Operation::GT:
 				s.append(" > ");
 				break;
-			case EQEmu::item_quest::Operation::LTE:
+			case EQ::item_quest::Operation::LTE:
 				s.append(" <= ");
 				break;
-			case EQEmu::item_quest::Operation::GTE:
+			case EQ::item_quest::Operation::GTE:
 				s.append(" >= ");
 				break;
-			case EQEmu::item_quest::Operation::EQ:
+			case EQ::item_quest::Operation::EQ:
 				s.append(" = ");
 				break;
-			case EQEmu::item_quest::Operation::NEQ:
+			case EQ::item_quest::Operation::NEQ:
 				s.append(" != ");
 				break;
 		}

@@ -19,7 +19,7 @@ static void strsplit(const char* str, char pat, std::vector<std::string>& parts)
 	}
 }
 
-void EQEmu::item_quest::ItemQuestQuery::UnPack(const std::string& pack) {
+void EQ::item_quest::ItemQuestQuery::UnPack(const std::string& pack) {
 	std::vector<std::string> groups;
 	std::vector<std::string> parts;
 
@@ -64,17 +64,17 @@ static std::string GetQueryKey(uint32 charid) {
 	return StringFormat("character-%u:iq-last-q", charid);
 }
 
-std::string EQEmu::item_quest::GetLastPick(uint32 charid) {
+std::string EQ::item_quest::GetLastPick(uint32 charid) {
 	return DataBucket::GetData(GetPickKey(charid));
 }
 
-void EQEmu::item_quest::SetLastPick(uint32 charid, const ItemQuestPickResult& result, const std::string expire) {
+void EQ::item_quest::SetLastPick(uint32 charid, const ItemQuestPickResult& result, const std::string expire) {
 	std::string picked;
 	result.Pack(picked);
  	DataBucket::SetData(GetPickKey(charid),picked,expire);
 }
 
-long long EQEmu::item_quest::GetLastPickRemain(uint32 charid) {
+long long EQ::item_quest::GetLastPickRemain(uint32 charid) {
 	std::string expires = DataBucket::GetDataExpires(GetPickKey(charid));
 
 	if (expires.size() == 0) {
@@ -87,17 +87,17 @@ long long EQEmu::item_quest::GetLastPickRemain(uint32 charid) {
 	return expiresAt - now;
 }
 
-std::string EQEmu::item_quest::GetLastQuery(uint32 charid) {
+std::string EQ::item_quest::GetLastQuery(uint32 charid) {
 	return DataBucket::GetData(GetQueryKey(charid));
 }
 
-void EQEmu::item_quest::SetLastQuery(uint32 charid, const ItemQuestQuery& query, const std::string expire) {
+void EQ::item_quest::SetLastQuery(uint32 charid, const ItemQuestQuery& query, const std::string expire) {
 	std::string packed;
 	query.Pack(packed);
  	DataBucket::SetData(GetQueryKey(charid),packed,expire);
 }
 
-long long EQEmu::item_quest::GetLastQueryRemain(uint32 charid) {
+long long EQ::item_quest::GetLastQueryRemain(uint32 charid) {
 	std::string expires = DataBucket::GetDataExpires(GetQueryKey(charid));
 
 	if (expires.size() == 0) {
@@ -110,7 +110,7 @@ long long EQEmu::item_quest::GetLastQueryRemain(uint32 charid) {
 	return expiresAt - now;
 }
 
-bool EQEmu::item_quest::Pick(uint32 item_id, bool exact, int32 min_level, int32 max_level, int32 min_exp, int32 max_exp, int32 rnd, const char* zone, ItemQuestPickResult& result) {
+bool EQ::item_quest::Pick(uint32 item_id, bool exact, int32 min_level, int32 max_level, int32 min_exp, int32 max_exp, int32 rnd, const char* zone, ItemQuestPickResult& result) {
 	const char* SQL =
 	"select \n"
 	"npc.id, cd.chance, cd.spawn_chance, npc.aggroradius, npc.name, sp2.id, sp2.spawngroupID, sp2.x, sp2.y, sp2.z, sp2.heading, sp2.zone, zone.zoneidnumber \n"
@@ -186,7 +186,7 @@ bool EQEmu::item_quest::Pick(uint32 item_id, bool exact, int32 min_level, int32 
 	return true;
 }
 
-bool EQEmu::item_quest::Query(ItemQuestQuery &query, std::vector<ItemQuestResultItem> &found) {
+bool EQ::item_quest::Query(ItemQuestQuery &query, std::vector<ItemQuestResultItem> &found) {
 	const char* SQL =
 	"select cd.id, cd.name, cd.chance, cd.spawn_chance, cd.occurance, cd.minlevel, cd.maxlevel, cd.minzone, cd.maxzone, cd.minexpansion, cd.maxexpansion \n"
 	"from classify_drops cd \n"
@@ -240,87 +240,87 @@ bool EQEmu::item_quest::Query(ItemQuestQuery &query, std::vector<ItemQuestResult
 	for (auto qstat = query.QStats.begin(); qstat != query.QStats.end(); ++qstat) {
 		std::string s;
 		switch ((*qstat).stat) {
-			case EQEmu::item_quest::QStat::DAMAGE:
+			case EQ::item_quest::QStat::DAMAGE:
 				s.append(" and (itm.damage ");
 				break;
-			case EQEmu::item_quest::QStat::DELAY:
+			case EQ::item_quest::QStat::DELAY:
 				s.append(" and (itm.delay ");
 				break;
-			case EQEmu::item_quest::QStat::AC:
+			case EQ::item_quest::QStat::AC:
 				s.append(" and (itm.ac ");
 				break;
-			case EQEmu::item_quest::QStat::BAGSLOTS:
+			case EQ::item_quest::QStat::BAGSLOTS:
 				s.append(" and (itm.bagslots ");
 				break;
-			case EQEmu::item_quest::QStat::FOCUS:
+			case EQ::item_quest::QStat::FOCUS:
 				s.append(" and (itm.focus ");
 				break;
-			case EQEmu::item_quest::QStat::HASTE:
+			case EQ::item_quest::QStat::HASTE:
 				s.append(" and (itm.haste ");
 				break;
-			case EQEmu::item_quest::QStat::HP:
+			case EQ::item_quest::QStat::HP:
 				s.append(" and (itm.hp ");
 				break;
-			case EQEmu::item_quest::QStat::REGEN:
+			case EQ::item_quest::QStat::REGEN:
 				s.append(" and (itm.regen ");
 				break;
-			case EQEmu::item_quest::QStat::MANA:
+			case EQ::item_quest::QStat::MANA:
 				s.append(" and (itm.mana ");
 				break;
-			case EQEmu::item_quest::QStat::MANAREGEN:
+			case EQ::item_quest::QStat::MANAREGEN:
 				s.append(" and (itm.manaregen ");
 				break;
-			case EQEmu::item_quest::QStat::MR:
+			case EQ::item_quest::QStat::MR:
 				s.append(" and (itm.mr ");
 				break;
-			case EQEmu::item_quest::QStat::PR:
+			case EQ::item_quest::QStat::PR:
 				s.append(" and (itm.pr ");
 				break;
-			case EQEmu::item_quest::QStat::CR:
+			case EQ::item_quest::QStat::CR:
 				s.append(" and (itm.cr ");
 				break;
-			case EQEmu::item_quest::QStat::DR:
+			case EQ::item_quest::QStat::DR:
 				s.append(" and (itm.dr ");
 				break;
-			case EQEmu::item_quest::QStat::FR:
+			case EQ::item_quest::QStat::FR:
 				s.append(" and (itm.fr ");
 				break;
-			case EQEmu::item_quest::QStat::RANGE:
+			case EQ::item_quest::QStat::RANGE:
 				s.append(" and (itm.range ");
 				break;
-			case EQEmu::item_quest::QStat::SKILLMODTYPE:
+			case EQ::item_quest::QStat::SKILLMODTYPE:
 				s.append(" and (itm.skillmodtype ");
 				break;
-			case EQEmu::item_quest::QStat::PROCEFFECT:
+			case EQ::item_quest::QStat::PROCEFFECT:
 				s.append(" and (itm.proceffect ");
 				break;
-			case EQEmu::item_quest::QStat::WORNEFFECT:
+			case EQ::item_quest::QStat::WORNEFFECT:
 				s.append(" and (itm.worneffect ");
 				break;
-			case EQEmu::item_quest::QStat::FOCUSEFFECT:
+			case EQ::item_quest::QStat::FOCUSEFFECT:
 				s.append(" and (itm.focuseffect ");
 				break;
-			case EQEmu::item_quest::QStat::ITEMTYPE:
+			case EQ::item_quest::QStat::ITEMTYPE:
 				s.append(" and (itm.itemtype ");
 				break;
 		}
 		switch ((*qstat).operation) {
-			case EQEmu::item_quest::Operation::LT:
+			case EQ::item_quest::Operation::LT:
 				s.append(" < ");
 				break;
-			case EQEmu::item_quest::Operation::GT:
+			case EQ::item_quest::Operation::GT:
 				s.append(" > ");
 				break;
-			case EQEmu::item_quest::Operation::LTE:
+			case EQ::item_quest::Operation::LTE:
 				s.append(" <= ");
 				break;
-			case EQEmu::item_quest::Operation::GTE:
+			case EQ::item_quest::Operation::GTE:
 				s.append(" >= ");
 				break;
-			case EQEmu::item_quest::Operation::EQ:
+			case EQ::item_quest::Operation::EQ:
 				s.append(" = ");
 				break;
-			case EQEmu::item_quest::Operation::NEQ:
+			case EQ::item_quest::Operation::NEQ:
 				s.append(" != ");
 				break;
 		}
@@ -336,7 +336,7 @@ bool EQEmu::item_quest::Query(ItemQuestQuery &query, std::vector<ItemQuestResult
 	}
 
 	for (auto row = results.begin(); row != results.end(); ++row) {
-		EQEmu::item_quest::ItemQuestResultItem item;
+		EQ::item_quest::ItemQuestResultItem item;
 
 		auto i = 0;
 

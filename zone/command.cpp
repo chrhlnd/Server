@@ -12769,10 +12769,10 @@ void command_itemquestset(Client *c, const Seperator *sep) {
 		auto linkmarker_end = fullmsg.find((char)0x12, linkmarker+1);
 
 		std::string encodedLink;
-		encodedLink = fullmsg.substr(linkmarker + 1, EQEmu::constants::SAY_LINK_BODY_SIZE);
+		encodedLink = fullmsg.substr(linkmarker + 1, EQ::constants::SAY_LINK_BODY_SIZE);
 
-		EQEmu::SayLinkBody_Struct link_body;
-		EQEmu::saylink::DegenerateLinkBody(link_body, encodedLink);
+		EQ::SayLinkBody_Struct link_body;
+		EQ::saylink::DegenerateLinkBody(link_body, encodedLink);
 
 		Log(Logs::General, Logs::Debug, "Linked IID %d", link_body.item_id);
 		itemid = link_body.item_id;
@@ -12816,10 +12816,10 @@ void command_itemquestset(Client *c, const Seperator *sep) {
 
 	int rnd = zone->random.Int(INT_MIN,INT_MAX);
 
-	EQEmu::item_quest::ItemQuestQuery query;
+	EQ::item_quest::ItemQuestQuery query;
 	query.MinLevel = 0;
 	query.MaxLevel = 0;
-	std::string packed = EQEmu::item_quest::GetLastQuery(c->CharacterID());
+	std::string packed = EQ::item_quest::GetLastQuery(c->CharacterID());
 	query.UnPack(packed);
 
 	auto target = c;
@@ -12841,15 +12841,15 @@ void command_itemquestset(Client *c, const Seperator *sep) {
 		maxlevel = query.MaxLevel;
 	}
 
-	auto current_pick = EQEmu::item_quest::GetLastPick(c->CharacterID());
+	auto current_pick = EQ::item_quest::GetLastPick(c->CharacterID());
 	if (current_pick.size() > 0) {
-		auto remain = EQEmu::item_quest::GetLastPickRemain(c->CharacterID());
+		auto remain = EQ::item_quest::GetLastPickRemain(c->CharacterID());
 		c->Message(0, StringFormat("Already have a current pick, %ds time left, or complete your goal, #iq-status to see goal.", remain).c_str());
 		return;
 	}
 
-	EQEmu::item_quest::ItemQuestPickResult result;
-	if (!EQEmu::item_quest::Pick(itemid, exactItem, minlevel, maxlevel, 1, 8, rnd, zoneName, result)) {
+	EQ::item_quest::ItemQuestPickResult result;
+	if (!EQ::item_quest::Pick(itemid, exactItem, minlevel, maxlevel, 1, 8, rnd, zoneName, result)) {
 		c->Message(0, "Error picking item quest");
 		return;
 	}
@@ -12859,24 +12859,24 @@ void command_itemquestset(Client *c, const Seperator *sep) {
 		return;
 	}
 
-	EQEmu::item_quest::SetLastPick(c->CharacterID(), result);
+	EQ::item_quest::SetLastPick(c->CharacterID(), result);
 
 	// pass this off to scripts
 	parse->EventPlayer(EVENT_COMMAND, c, "#iqpickapply", 0);
 }
 
-void formatQuestResult(EQEmu::item_quest::ItemQuestResultItem &item, std::string& str, std::string& zone) {
-	const EQEmu::ItemData* reward_item = database.GetItem(item.ItemID);
-	EQEmu::SayLinkEngine linker;
-	linker.SetLinkType(EQEmu::saylink::SayLinkItemData);
+void formatQuestResult(EQ::item_quest::ItemQuestResultItem &item, std::string& str, std::string& zone) {
+	const EQ::ItemData* reward_item = database.GetItem(item.ItemID);
+	EQ::SayLinkEngine linker;
+	linker.SetLinkType(EQ::saylink::SayLinkItemData);
 	linker.SetItemData(reward_item);
 
 	auto item_link = linker.GenerateLink();
 	str.append("[");
 	if (zone.size() > 0) {
-		str.append(EQEmu::SayLinkEngine::GenerateQuestSaylink(StringFormat("#iq-set %d_%s",item.ItemID,zone.c_str()).c_str(), false, "set"));
+		str.append(EQ::SayLinkEngine::GenerateQuestSaylink(StringFormat("#iq-set %d_%s",item.ItemID,zone.c_str()).c_str(), false, "set"));
 	} else {
-		str.append(EQEmu::SayLinkEngine::GenerateQuestSaylink(StringFormat("#iq-set %d",item.ItemID), false, "set"));
+		str.append(EQ::SayLinkEngine::GenerateQuestSaylink(StringFormat("#iq-set %d",item.ItemID), false, "set"));
 	}
 	str.append("] ");
 	str.append(item_link);
@@ -12999,7 +12999,7 @@ void command_itemquestqueryz(Client *c, const Seperator *sep)
 
 void command_itemquestquery(Client *c, const Seperator *sep)
 {
-	EQEmu::item_quest::ItemQuestQuery query;
+	EQ::item_quest::ItemQuestQuery query;
 
 	query.Slots        = 0;
 	query.Classes      = 0;
@@ -13075,12 +13075,12 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 		query.MaxLevel     = query.MinLevel + 10;
 	}
 
-	auto inst = c->GetInv().GetItem(EQEmu::invslot::slotCursor);
+	auto inst = c->GetInv().GetItem(EQ::invslot::slotCursor);
 	if (inst) {
 		auto item_data = inst->GetItem();
 
-		EQEmu::SayLinkEngine linker;
-		linker.SetLinkType(EQEmu::saylink::SayLinkItemData);
+		EQ::SayLinkEngine linker;
+		linker.SetLinkType(EQ::saylink::SayLinkItemData);
 		linker.SetItemData(item_data);
 		std::string msg;
 		msg.append("Using slots from ");
@@ -13089,26 +13089,26 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 
 		query.Slots        = item_data->Slots;
 
-		EQEmu::item_quest::ItemQuestQueryStatLimit limit;
+		EQ::item_quest::ItemQuestQueryStatLimit limit;
 		if (item_data->Damage > 0) {
-			limit.stat = EQEmu::item_quest::DAMAGE;
-			limit.operation = EQEmu::item_quest::GT;
+			limit.stat = EQ::item_quest::DAMAGE;
+			limit.operation = EQ::item_quest::GT;
 			limit.test = 0;
 			query.QStats.push_back(limit);
 		}
 
 		if (item_data->Delay > 0) {
-			limit.stat = EQEmu::item_quest::DELAY;
-			limit.operation = EQEmu::item_quest::GT;
+			limit.stat = EQ::item_quest::DELAY;
+			limit.operation = EQ::item_quest::GT;
 			limit.test = 0;
 			query.QStats.push_back(limit);
 		}
 
-		if (item_data->ItemType != EQEmu::item::ItemTypeAugmentation) {
+		if (item_data->ItemType != EQ::item::ItemTypeAugmentation) {
 			// reduce noise augments have the slots they go into so they show up a lot
-			limit.stat = EQEmu::item_quest::ITEMTYPE;
-			limit.operation = EQEmu::item_quest::NEQ;
-			limit.test = EQEmu::item::ItemTypeAugmentation;
+			limit.stat = EQ::item_quest::ITEMTYPE;
+			limit.operation = EQ::item_quest::NEQ;
+			limit.test = EQ::item::ItemTypeAugmentation;
 			query.QStats.push_back(limit);
 		}
 	}
@@ -13124,7 +13124,7 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 			continue;
 		}
 
-		EQEmu::item_quest::ItemQuestQueryStatLimit limit;
+		EQ::item_quest::ItemQuestQueryStatLimit limit;
 
 		if (strcasecmp(parts[0].c_str(), "name") == 0) {
 			query.NameFilter.clear();
@@ -13181,83 +13181,83 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 			continue;
 		}
 		else if (strcasecmp(parts[0].c_str(), "damage") == 0) {
-			limit.stat = EQEmu::item_quest::DAMAGE;
+			limit.stat = EQ::item_quest::DAMAGE;
 		}
 		else if (strcasecmp(parts[0].c_str(),"delay") == 0) {
-			limit.stat = EQEmu::item_quest::DELAY;
+			limit.stat = EQ::item_quest::DELAY;
 		}
 		else if (strcasecmp(parts[0].c_str(),"ac") == 0) {
-			limit.stat = EQEmu::item_quest::AC;
+			limit.stat = EQ::item_quest::AC;
 		}
 		else if (strcasecmp(parts[0].c_str(),"bagslots") == 0) {
-			limit.stat = EQEmu::item_quest::BAGSLOTS;
+			limit.stat = EQ::item_quest::BAGSLOTS;
 		}
 		else if (strcasecmp(parts[0].c_str(),"focus") == 0) {
-			limit.stat = EQEmu::item_quest::FOCUS;
+			limit.stat = EQ::item_quest::FOCUS;
 		}
 		else if (strcasecmp(parts[0].c_str(),"haste") == 0) {
-			limit.stat = EQEmu::item_quest::HASTE;
+			limit.stat = EQ::item_quest::HASTE;
 		}
 		else if (strcasecmp(parts[0].c_str(),"hp") == 0) {
-			limit.stat = EQEmu::item_quest::HP;
+			limit.stat = EQ::item_quest::HP;
 		}
 		else if (strcasecmp(parts[0].c_str(),"regen") == 0) {
-			limit.stat = EQEmu::item_quest::REGEN;
+			limit.stat = EQ::item_quest::REGEN;
 		}
 		else if (strcasecmp(parts[0].c_str(),"mana") == 0) {
-			limit.stat = EQEmu::item_quest::MANA;
+			limit.stat = EQ::item_quest::MANA;
 		}
 		else if (strcasecmp(parts[0].c_str(),"manaregen") == 0) {
-			limit.stat = EQEmu::item_quest::MANAREGEN;
+			limit.stat = EQ::item_quest::MANAREGEN;
 		}
 		else if (strcasecmp(parts[0].c_str(),"mr") == 0) {
-			limit.stat = EQEmu::item_quest::MR;
+			limit.stat = EQ::item_quest::MR;
 		}
 		else if (strcasecmp(parts[0].c_str(),"pr") == 0) {
-			limit.stat = EQEmu::item_quest::PR;
+			limit.stat = EQ::item_quest::PR;
 		}
 		else if (strcasecmp(parts[0].c_str(),"cr") == 0) {
-			limit.stat = EQEmu::item_quest::CR;
+			limit.stat = EQ::item_quest::CR;
 		}
 		else if (strcasecmp(parts[0].c_str(),"dr") == 0) {
-			limit.stat = EQEmu::item_quest::DR;
+			limit.stat = EQ::item_quest::DR;
 		}
 		else if (strcasecmp(parts[0].c_str(),"fr") == 0) {
-			limit.stat = EQEmu::item_quest::FR;
+			limit.stat = EQ::item_quest::FR;
 		}
 		else if (strcasecmp(parts[0].c_str(),"range") == 0) {
-			limit.stat = EQEmu::item_quest::RANGE;
+			limit.stat = EQ::item_quest::RANGE;
 		}
 		else if (strcasecmp(parts[0].c_str(),"skillmodtype") == 0) {
-			limit.stat = EQEmu::item_quest::SKILLMODTYPE;
+			limit.stat = EQ::item_quest::SKILLMODTYPE;
 		}
 		else if (strcasecmp(parts[0].c_str(),"proceffect") == 0) {
-			limit.stat = EQEmu::item_quest::PROCEFFECT;
+			limit.stat = EQ::item_quest::PROCEFFECT;
 		}
 		else if (strcasecmp(parts[0].c_str(),"worneffect") == 0) {
-			limit.stat = EQEmu::item_quest::WORNEFFECT;
+			limit.stat = EQ::item_quest::WORNEFFECT;
 		}
 		else if (strcasecmp(parts[0].c_str(),"focuseffect") == 0) {
-			limit.stat = EQEmu::item_quest::FOCUSEFFECT;
+			limit.stat = EQ::item_quest::FOCUSEFFECT;
 		}
 
 		if (strcasecmp(parts[1].c_str(),"lt") == 0) {
-			limit.operation = EQEmu::item_quest::LT;
+			limit.operation = EQ::item_quest::LT;
 		}
 		else if (strcasecmp(parts[1].c_str(),"gt") == 0) {
-			limit.operation = EQEmu::item_quest::GT;
+			limit.operation = EQ::item_quest::GT;
 		}
 		else if (strcasecmp(parts[1].c_str(),"lte") == 0) {
-			limit.operation  = EQEmu::item_quest::LTE;
+			limit.operation  = EQ::item_quest::LTE;
 		}
 		else if (strcasecmp(parts[1].c_str(),"gte") == 0) {
-			limit.operation  = EQEmu::item_quest::GTE;
+			limit.operation  = EQ::item_quest::GTE;
 		}
 		else if (strcasecmp(parts[1].c_str(),"eq") == 0) {
-			limit.operation  = EQEmu::item_quest::EQ;
+			limit.operation  = EQ::item_quest::EQ;
 		}
 		else if (strcasecmp(parts[1].c_str(),"neq") == 0) {
-			limit.operation  = EQEmu::item_quest::NEQ;
+			limit.operation  = EQ::item_quest::NEQ;
 		}
 
 		limit.test = atoi(parts[2].c_str());
@@ -13272,10 +13272,10 @@ void command_itemquestquery(Client *c, const Seperator *sep)
 		query.QStats.push_back(limit);
 	}
 
-	EQEmu::item_quest::SetLastQuery(c->CharacterID(), query);
+	EQ::item_quest::SetLastQuery(c->CharacterID(), query);
 
-	std::vector<EQEmu::item_quest::ItemQuestResultItem> results;
-	if (!EQEmu::item_quest::Query(query, results)) {
+	std::vector<EQ::item_quest::ItemQuestResultItem> results;
+	if (!EQ::item_quest::Query(query, results)) {
 		c->Message(0, "itemquestquery - failed");
 		return;
 	}

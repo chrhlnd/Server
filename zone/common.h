@@ -800,17 +800,7 @@ struct DamageAnyInfo {
     int8            buffslot;
     bool            iBuffTic;
     int             special;
-    EQEmu::skills::SkillType skill_used;
-};
-
-struct DamageAnyInfo {
-	int             damage;
-    uint16          spell_id;
-    bool            avoidable;
-    int8            buffslot;
-    bool            iBuffTic;
-    int             special;
-    EQEmu::skills::SkillType skill_used;
+    EQ::skills::SkillType skill_used;
 };
 
 #endif
